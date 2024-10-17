@@ -77,50 +77,44 @@ function Staking() {
     // Set up web3 and account change handling
     useEffect(() => {
         if (window.ethereum) {
-            const handleAccountsChanged = (accounts: string[]) => {
+            const web3Instance = new Web3(window.ethereum);
+            setWeb3(web3Instance);
+
+            const handleAccountsChanged = (accounts) => {
                 if (accounts.length > 0) {
                     setWeb3(new Web3(window.ethereum));
-                    setAccount(accounts[0]); // Update the current account
+                    // This will automatically trigger the useEffect hook to fetch the new balance
                 } else {
                     setUsdtWalletBalance("Not connected");
                 }
             };
-    
+
             window.ethereum.on('accountsChanged', handleAccountsChanged);
-    
+
             return () => {
                 window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
             };
         }
     }, []);
-    
+
     
 
     // Fetch wallet balance when connected or account changes
-    
     useEffect(() => {
         const fetchWalletBalance = async () => {
             if (web3 && address) {
                 try {
                     // Create a USDT contract instance
-                    const usdtContract = new web3.eth.Contract(usdtABI as any, usdtAddress);
+                    const usdtContract = new web3.eth.Contract(usdtABI, usdtAddress);
 
                     // Ensure the balanceOf method is available
                     if (usdtContract.methods.balanceOf) {
                         // Fetch balance for the connected address
                         const balance = await usdtContract.methods.balanceOf(address).call();
-
-                        // Check the type of the returned balance to avoid type issues
-                        if (balance && typeof balance === "string") {
-                            const balanceInUSDT = parseFloat(web3.utils.fromWei(balance, 'ether')).toFixed(2);
-                            setUsdtWalletBalance(balanceInUSDT);
-                        } else {
-                            console.error("Unexpected balance type:", typeof balance);
-                            setUsdtWalletBalance("Error");
-                        }
+                        const balanceInUSDT = web3.utils.fromWei(balance, 'ether');
+                        setUsdtWalletBalance(balanceInUSDT);
                     } else {
                         console.error("balanceOf method not available in the contract ABI");
-                        setUsdtWalletBalance("Error");
                     }
                 } catch (error) {
                     console.error("Error fetching USDT balance:", error);
@@ -131,12 +125,12 @@ function Staking() {
             }
         };
 
-        // Fetch balance only if connected and the web3 instance is set
-        if (isConnected && web3) {
+        if (isConnected) {
             fetchWalletBalance();
         }
     }, [web3, address, isConnected]);
-
+    
+    
 
 
     useEffect(() => {
