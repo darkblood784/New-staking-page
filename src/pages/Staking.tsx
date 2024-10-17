@@ -80,7 +80,7 @@ function Staking() {
             const web3Instance = new Web3(window.ethereum);
             setWeb3(web3Instance);
 
-            const handleAccountsChanged = (accounts) => {
+            const handleAccountsChanged = (accounts: string[]) => {
                 if (accounts.length > 0) {
                     setWeb3(new Web3(window.ethereum));
                     // This will automatically trigger the useEffect hook to fetch the new balance
