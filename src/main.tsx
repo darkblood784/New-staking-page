@@ -8,8 +8,9 @@ import { WagmiProvider } from 'wagmi';
 import { RainbowKitProvider } from '@rainbow-me/rainbowkit';
 
 import App from './App';
-import { config } from './wagmi'; // Import the config that we updated
+import { config } from './wagmi';
 import "./i18n";
+
 
 const queryClient = new QueryClient();
 
@@ -22,5 +23,5 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
         </RainbowKitProvider>
       </QueryClientProvider>
     </WagmiProvider>
-  </React.StrictMode>
+  </React.StrictMode>,
 );

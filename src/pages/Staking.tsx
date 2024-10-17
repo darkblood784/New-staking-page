@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
+import Web3 from "web3";
+import { useAccount } from "wagmi"; // Import to use wallet info
+
 
 import banner from '../assets/banner.png';
 import usdtbackground from '../assets/usdtplanbackground.png';
@@ -36,6 +39,12 @@ const headImages: WhaleImagePaths = {
     "75-100": './whale/75-100.png'
 };
 
+// Contract ABI and addresses from .env
+const contractABI = JSON.parse(import.meta.env.VITE_CONTRACT_ABI);
+const contractAddress = import.meta.env.VITE_CONTRACT_ADDRESS;
+const usdtAddress = import.meta.env.VITE_USDT_ADDRESS;
+const wbtcAddress = import.meta.env.VITE_WBTC_ADDRESS;
+const wethAddress = import.meta.env.VITE_WETH_ADDRESS;
 
 function Staking() {
     const { t } = useTranslation();
@@ -48,6 +57,101 @@ function Staking() {
     const [sliderValueusdt, setSliderValueusdt] = useState<number>(0);
     const [sliderValuebtc, setSliderValuebtc] = useState<number>(0);
     const [sliderValueeth, setSliderValueeth] = useState<number>(0);
+
+    const { isConnected, address } = useAccount(); // To get wallet address and connection status
+    const [web3, setWeb3] = useState<Web3 | null>(null);
+    const [contract, setContract] = useState<any>(null);
+    const [stakeInfo, setStakeInfo] = useState<any>(null);
+
+    useEffect(() => {
+        if (isConnected && window.ethereum) {
+            const _web3 = new Web3(window.ethereum);
+            setWeb3(_web3);
+            const _contract = new _web3.eth.Contract(contractABI, contractAddress);
+            setContract(_contract);
+        }
+    }, [isConnected]);
+
+    // Function to fetch staking information for connected wallet
+    useEffect(() => {
+        const fetchStakeInfo = async () => {
+            if (web3 && contract && address) {
+                try {
+                    const stakedInfo = await contract.methods.userStakeInfos(address, usdtAddress).call();
+                    setStakeInfo(stakedInfo);
+                } catch (error) {
+                    console.error("Error fetching stake info:", error);
+                }
+            }
+        };
+
+        if (isConnected) {
+            fetchStakeInfo();
+        }
+    }, [web3, contract, address]);
+
+    // Function to fetch staking information for connected wallet
+    useEffect(() => {
+        const fetchStakeInfo = async () => {
+            if (web3 && contract && address) {
+                try {
+                    const stakedInfo = await contract.methods.userStakeInfos(address, wbtcAddress).call();
+                    setStakeInfo(stakedInfo);
+                } catch (error) {
+                    console.error("Error fetching stake info:", error);
+                }
+            }
+        };
+
+        if (isConnected) {
+            fetchStakeInfo();
+        }
+    }, [web3, contract, address]);
+
+    // Function to fetch staking information for connected wallet
+    useEffect(() => {
+        const fetchStakeInfo = async () => {
+            if (web3 && contract && address) {
+                try {
+                    const stakedInfo = await contract.methods.userStakeInfos(address, wethAddress).call();
+                    setStakeInfo(stakedInfo);
+                } catch (error) {
+                    console.error("Error fetching stake info:", error);
+                }
+            }
+        };
+
+        if (isConnected) {
+            fetchStakeInfo();
+        }
+    }, [web3, contract, address]);
+
+    // Function to handle staking USDT
+const handleStakeUSDT = async () => {
+    if (!web3 || !contract || !address) {
+      alert("Please connect your wallet first!");
+      return;
+    }
+  
+    try {
+      // Convert input value to Wei (since blockchain uses Wei for transactions)
+      const amountToStake = web3.utils.toWei(inputValueusdt, "ether");
+  
+      // Determine duration in months
+      const durationInMonths = usdtduration === '30 Days' ? 1 : usdtduration === '6 Months' ? 6 : 12;
+  
+      // Call the stake function of the smart contract
+      await contract.methods.stake(usdtAddress, durationInMonths, amountToStake)
+        .send({ from: address });
+  
+      alert("Staked successfully!");
+    } catch (error) {
+      console.error("Staking error:", error);
+      alert("Staking failed. Please try again.");
+    }
+  };
+  
+
 
     const durationOptions = [
         { key: 'day', percent: '15%' },
@@ -143,8 +247,14 @@ function Staking() {
                             getWhaleHeadSrc={getWhaleHeadSrcusdt}
                         />
                     </div>
+                    {/* Stake Button */}
                     <div className="w-full h-20 md:w-1/4 md:h-full opacity-50 bg-black rounded-2xl flex justify-center items-center cursor-pointer">
-                        <p className="text-[35px] md:text-[30px] font-bold">{t('take')} <span className="ml-2">&#9660;</span></p>
+                        <button
+                            onClick={handleStakeUSDT} // <-- Add this line
+                            className="bg-blue-500 text-white p-2 rounded-md mt-4"
+                        >
+                            {t('take')}
+                        </button>
                     </div>
                 </div>
             </div>
