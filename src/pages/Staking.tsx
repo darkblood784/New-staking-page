@@ -100,16 +100,13 @@ function Staking() {
     
 
     // Fetch wallet balance when connected or account changes
+    // Fetch wallet balance function to be called in useEffect
     useEffect(() => {
         const fetchWalletBalance = async () => {
             if (web3 && address) {
                 try {
-                    // Create a USDT contract instance
                     const usdtContract = new web3.eth.Contract(usdtABI, usdtAddress);
-
-                    // Ensure the balanceOf method is available
                     if (usdtContract.methods.balanceOf) {
-                        // Fetch balance for the connected address
                         const balance = await usdtContract.methods.balanceOf(address).call();
                         const balanceInUSDT = web3.utils.fromWei(balance, 'ether');
                         setUsdtWalletBalance(balanceInUSDT);
