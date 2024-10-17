@@ -140,11 +140,8 @@ function Staking() {
         const fetchStakeInfo = async (tokenAddress: string, tokenName: string) => {
             if (web3 && contract && address) {
                 try {
-                    // Fetch the staked information for the given token address
                     const stakedInfo = await contract.methods.userStakeInfos(address, tokenAddress).call();
-                    // Convert the staked amount from Wei to Ether unit
                     const stakedAmountValue = Number(web3.utils.fromWei(stakedInfo.stakedAmount, "ether"));
-                    // Update the staked amount state
                     setStakedAmount(prev => ({ ...prev, [tokenName]: stakedAmountValue }));
                 } catch (error) {
                     console.error(`Error fetching ${tokenName} stake info:`, error);
@@ -152,12 +149,13 @@ function Staking() {
             }
         };
     
-        if (isConnected) {
+        if (isConnected && contract) {
             fetchStakeInfo(usdtAddress, "USDT");
             fetchStakeInfo(wbtcAddress, "BTC");
             fetchStakeInfo(wethAddress, "ETH");
         }
     }, [web3, contract, address, isConnected]);
+    
     
     
 
