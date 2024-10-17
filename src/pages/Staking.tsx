@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import Web3 from "web3";
 import { useAccount } from "wagmi"; // Import to use wallet info
+import usdtABI from "../usdtABI.json";
+
 
 
 import banner from '../assets/banner.png';
@@ -58,6 +60,10 @@ function Staking() {
     const [sliderValuebtc, setSliderValuebtc] = useState<number>(0);
     const [sliderValueeth, setSliderValueeth] = useState<number>(0);
 
+    const [usdtWalletBalance, setUsdtWalletBalance] = useState<string | null>(null);
+
+    
+
     const { isConnected, address } = useAccount(); // To get wallet address and connection status
     const [web3, setWeb3] = useState<Web3 | null>(null);
     const [contract, setContract] = useState<any>(null);
@@ -66,6 +72,66 @@ function Staking() {
         BTC: null,
         ETH: null,
     });
+
+
+    // Set up web3 and account change handling
+    useEffect(() => {
+        if (window.ethereum) {
+            const web3Instance = new Web3(window.ethereum);
+            setWeb3(web3Instance);
+
+            const handleAccountsChanged = (accounts) => {
+                if (accounts.length > 0) {
+                    setWeb3(new Web3(window.ethereum));
+                    // This will automatically trigger the useEffect hook to fetch the new balance
+                } else {
+                    setUsdtWalletBalance("Not connected");
+                }
+            };
+
+            window.ethereum.on('accountsChanged', handleAccountsChanged);
+
+            return () => {
+                window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
+            };
+        }
+    }, []);
+
+    
+
+    // Fetch wallet balance when connected or account changes
+    useEffect(() => {
+        const fetchWalletBalance = async () => {
+            if (web3 && address) {
+                try {
+                    // Create a USDT contract instance
+                    const usdtContract = new web3.eth.Contract(usdtABI, usdtAddress);
+
+                    // Ensure the balanceOf method is available
+                    if (usdtContract.methods.balanceOf) {
+                        // Fetch balance for the connected address
+                        const balance = await usdtContract.methods.balanceOf(address).call();
+                        const balanceInUSDT = web3.utils.fromWei(balance, 'ether');
+                        setUsdtWalletBalance(balanceInUSDT);
+                    } else {
+                        console.error("balanceOf method not available in the contract ABI");
+                    }
+                } catch (error) {
+                    console.error("Error fetching USDT balance:", error);
+                    setUsdtWalletBalance("Error");
+                }
+            } else {
+                setUsdtWalletBalance("Wallet not connected");
+            }
+        };
+
+        if (isConnected) {
+            fetchWalletBalance();
+        }
+    }, [web3, address, isConnected]);
+    
+    
+
 
     useEffect(() => {
         if (isConnected && window.ethereum) {
@@ -187,28 +253,46 @@ function Staking() {
                 <p className="md:text-[20px] text-[13px] items-end flex">{t('risk')}</p>
             </div>
 
-            {/* My Staking Section for USDT */}
-            <div className="flex flex-wrap w-full lg:w-[47%] relative mt-10">
-                <img src={mystake} className="absolute w-full h-full" alt="" />
-                <div className="p-2 m-2 md:m-10 w-full relative z-10 md:p-0 md:justify-between">
-                    <div className="my-autow-full md:w-[35%] ">
+            {/* USDT Section */}
+            <div className="flex flex-wrap w-full relative mt-10">
+                <img src={usdtbackground} className="absolute w-full h-full" alt="" />
+                <div className="p-2 flex flex-wrap w-full relative z-10 md:p-0 md:justify-between">
+                    <div className="my-auto pt-5 md:pt-0 ml-2 w-full md:w-[35%] lg:ml-10">
                         <div className="flex items-center">
                             <img src={usdt} alt="" className="w-14 h-14 mr-4" />
                             <p className="text-[35px] md:text-[30px] font-bold flex">USDT</p>
                         </div>
+                        <DurationSelector durations={durationOptions} setDuration={setUsdtDuration} />
+
                     </div>
-                    <div className="flex mt-10 justify-between">
-                        <div className="w-1/2">
-                            <p>{t('total')}</p>
-                            <p className="flex">
-                                <span className="text-[25px] md:text-[40px]">
-                                    {stakedAmount.USDT !== null ? stakedAmount.USDT : 'Loading...'}
-                                </span>
-                                <span className="text-[13px] mt-3 ml-2 md:mt-6 md:ml-4">
-                                    {stakedAmount.USDT !== null ? `USDT~$${stakedAmount.USDT}` : ''}
-                                </span>
-                            </p>
+                    <div className="w-full md:w-[30%] lg:pl-10 pt-16 pb-5">
+                        <div className="flex justify-between">
+                            <p className="text-[25px] md">{t('stake')}</p>
+                            <PrimeInput
+                                value={inputValueusdt}
+                                setValue={setInputValueusdt}
+                                validatePrime={validatePrime}
+
+                            />
                         </div>
+                        <div className="flex w-full justify-between">
+                            <p className="text-[25px] md">{usdtduration ? usdtduration : "0 Days"}</p>
+                            <div className="text-2xl mt-2.5">{`${Math.round(sliderValueusdt)}%`}</div>
+                        </div>
+                        <WhaleSlider
+                            sliderValue={sliderValueusdt}
+                            setSliderValue={setSliderValueusdt}
+                            getWhaleHeadSrc={getWhaleHeadSrcusdt}
+                        />
+                    </div>
+                    {/* Stake Button */}
+                    <div className="w-full h-20 md:w-1/4 md:h-full opacity-50 bg-black rounded-2xl flex justify-center items-center cursor-pointer">
+                        <button
+                            onClick={handleStakeUSDT} // <-- Add this line
+                            className="bg-blue-500 text-white p-2 rounded-md mt-4"
+                        >
+                            {t('take')}
+                        </button>
                     </div>
                 </div>
             </div>
@@ -317,7 +401,7 @@ function Staking() {
                 <p className="md:text-[20px] text-[13px] items-end flex">{t('risk')}</p>
             </div>
             <div className="flex flex-wrap justify-center w-full gap-7">
-                {/* USDT Section */}
+                {/* My Staking Section for USDT */}
                 <div className="flex flex-wrap w-full lg:w-[47%] relative mt-10">
                     <img src={mystake} className="absolute w-full h-full" alt="" />
                     <div className="p-2 m-2 md:m-10 w-full relative z-10 md:p-0 md:justify-between">
@@ -326,19 +410,31 @@ function Staking() {
                                 <img src={usdt} alt="" className="w-14 h-14 mr-4" />
                                 <p className="text-[35px] md:text-[30px] font-bold flex">USDT</p>
                             </div>
-
                         </div>
                         <div className="flex mt-10 justify-between">
                             <div className="w-1/2">
                                 <p>{t('total')}</p>
-                                <p className="flex"><span className="text-[25px] md:text-[40px]">1045</span><span className="text-[13px] mt-3 ml-2 md:mt-6 md:ml-4" >USDT~$1045.00</span></p>
+                                <p className="flex">
+                                    <span className="text-[25px] md:text-[40px]">
+                                        {stakedAmount.USDT !== null ? stakedAmount.USDT : 'Loading...'}
+                                    </span>
+                                    <span className="text-[13px] mt-3 ml-2 md:mt-6 md:ml-4">
+                                        {stakedAmount.USDT !== null ? `USDT~$${stakedAmount.USDT}` : ''}
+                                    </span>
+                                </p>
                             </div>
                             <div className="w-1/2">
-                                <p>{t('available')}</p>
-                                <p className="flex"><span className="text-[25px] md:text-[40px]">53</span><span className="text-[13px] mt-3 ml-2 md:mt-6 md:ml-4" >USDT~$1045.00</span></p>
+                                <p>Available in Wallet</p>
+                                <p className="flex">
+                                    <span className="text-[25px] md:text-[40px]">
+                                        {usdtWalletBalance !== null ? parseFloat(usdtWalletBalance).toFixed(2) : 'Loading...'}
+                                    </span>
+                                    <span className="text-[13px] mt-3 ml-2 md:mt-6 md:ml-4">
+                                        {usdtWalletBalance !== null ? `USDT~$${parseFloat(usdtWalletBalance).toFixed(5)}` : ''}
+                                    </span>
+                                </p>
                             </div>
                         </div>
-
                     </div>
                 </div>
                 {/* BTC Section */}
