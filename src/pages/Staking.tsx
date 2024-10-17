@@ -102,13 +102,24 @@ function Staking() {
         const fetchWalletBalance = async () => {
             if (web3 && address) {
                 try {
+                    // Create a USDT contract instance
                     const usdtContract = new web3.eth.Contract(usdtABI, usdtAddress);
+    
+                    // Ensure the balanceOf method is available
                     if (usdtContract.methods.balanceOf) {
-                        const balance = await usdtContract.methods.balanceOf(address).call();
-                        const balanceInUSDT = web3.utils.fromWei(balance, 'ether');
-                        setUsdtWalletBalance(balanceInUSDT);
+                        // Fetch balance for the connected address
+                        const balance: string = await usdtContract.methods.balanceOf(address).call();
+                        
+                        if (balance) {
+                            const balanceInUSDT = web3.utils.fromWei(balance, 'ether');
+                            setUsdtWalletBalance(balanceInUSDT);
+                        } else {
+                            console.error("Failed to fetch balance: Balance returned undefined or null");
+                            setUsdtWalletBalance("Error");
+                        }
                     } else {
                         console.error("balanceOf method not available in the contract ABI");
+                        setUsdtWalletBalance("Error");
                     }
                 } catch (error) {
                     console.error("Error fetching USDT balance:", error);
@@ -123,6 +134,7 @@ function Staking() {
             fetchWalletBalance();
         }
     }, [web3, address, isConnected]);
+    
     
 
     useEffect(() => {
