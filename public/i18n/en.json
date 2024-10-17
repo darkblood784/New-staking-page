@@ -1,0 +1,21 @@
+{
+    "swim": "Swim with whales",
+    "earn": "Earn big!",
+    "Join": "Join Whale Strategy and effortlessly enjoy staking rewards.",
+    "trading": "Trading Plan",
+    "staking": "My Staking",
+    "risk": "Before staking, fully understand the risks involved",
+    "day" : "30 Days",
+    "month" : "6 Months",
+    "year" : "1 Year",
+    "stake": "Stake",
+    "take": "STAKE" ,
+    "withdraw": "Withdraw",
+    "total": "Total Staked",
+    "available": "Available in Wallet",
+    "crypto": "Join us and explore endless crypto opportunities!",
+    "English": "English",
+    "Chinese": "Chinese",
+    "wbtc": "This stake uses WBTC (Wrapped Bitcoin), a tokenized version of BTC. WBTC enables faster transaction confirmations and lower fees compared to regular BTC, making it ideal for staking in DeFi protocols.",
+    "weth": "This stake uses WETH (Wrapped Ether), a tokenized version of ETH. By using WETH, users benefit from faster transactions, lower gas fees, and better compatibility with DeFi platforms, making staking more efficient."
+}
