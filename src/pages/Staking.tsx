@@ -74,38 +74,25 @@ function Staking() {
     });
 
 
-    const initializeWeb3 = (): Web3 | null => {
+    // Set up web3 and account change handling
+    useEffect(() => {
         if (window.ethereum) {
             const web3Instance = new Web3(window.ethereum);
             setWeb3(web3Instance);
-            return web3Instance;
-        }
-        return null;
-    };
 
-    useEffect(() => {
-        if (window.ethereum) {
-            const web3Instance = initializeWeb3();
-
-            const handleAccountsChanged = (accounts: string[]) => {
+            const handleAccountsChanged = (accounts) => {
                 if (accounts.length > 0) {
-                    const updatedWeb3 = initializeWeb3();
-                    if (updatedWeb3) {
-                        setWeb3(updatedWeb3);
-                        const userAddress = accounts[0];
-                        if (userAddress) {
-                            fetchWalletBalance(updatedWeb3, userAddress);
-                        }
-                    }
+                    setWeb3(new Web3(window.ethereum));
+                    // This will automatically trigger the useEffect hook to fetch the new balance
                 } else {
                     setUsdtWalletBalance("Not connected");
                 }
             };
 
-            window.ethereum.on("accountsChanged", handleAccountsChanged);
+            window.ethereum.on('accountsChanged', handleAccountsChanged);
 
             return () => {
-                window.ethereum.removeListener("accountsChanged", handleAccountsChanged);
+                window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
             };
         }
     }, []);
