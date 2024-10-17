@@ -74,12 +74,12 @@ function Staking() {
     });
 
 
-    // Set up web3 and account change handling
     useEffect(() => {
         if (window.ethereum) {
             const web3Instance = new Web3(window.ethereum);
             setWeb3(web3Instance);
-
+    
+            // Explicitly declare accounts type as string[]
             const handleAccountsChanged = (accounts: string[]) => {
                 if (accounts.length > 0) {
                     setWeb3(new Web3(window.ethereum));
@@ -88,18 +88,15 @@ function Staking() {
                     setUsdtWalletBalance("Not connected");
                 }
             };
-
+    
             window.ethereum.on('accountsChanged', handleAccountsChanged);
-
+    
             return () => {
                 window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
             };
         }
     }, []);
-
     
-
-    // Fetch wallet balance when connected or account changes
     // Fetch wallet balance function to be called in useEffect
     useEffect(() => {
         const fetchWalletBalance = async () => {
@@ -121,45 +118,42 @@ function Staking() {
                 setUsdtWalletBalance("Wallet not connected");
             }
         };
-
+    
         if (isConnected) {
             fetchWalletBalance();
         }
     }, [web3, address, isConnected]);
     
-    
-
-
-    useEffect(() => {
-        if (isConnected && window.ethereum) {
-            const _web3 = new Web3(window.ethereum);
-            setWeb3(_web3);
-            const _contract = new _web3.eth.Contract(contractABI, contractAddress);
-            setContract(_contract);
-        }
-    }, [isConnected]);
-
     // Fetch staking information for USDT, BTC, and ETH when web3, contract, and address are available
     useEffect(() => {
         const fetchStakeInfo = async (tokenAddress: string, tokenName: string) => {
             if (web3 && contract && address) {
                 try {
                     const stakedInfo = await contract.methods.userStakeInfos(address, tokenAddress).call();
-                    const stakedAmount = Number(web3.utils.fromWei(stakedInfo.stakedAmount, "ether"));
-                    setStakedAmount(prev => ({ ...prev, [tokenName]: stakedAmount }));
+                    
+                    // Ensure `stakedInfo.stakedAmount` is defined and not void
+                    if (stakedInfo?.stakedAmount) {
+                        const stakedAmount = Number(web3.utils.fromWei(stakedInfo.stakedAmount, "ether"));
+                        setStakedAmount(prev => ({ ...prev, [tokenName]: stakedAmount }));
+                    } else {
+                        console.error(`Invalid stakedAmount for ${tokenName}`);
+                    }
                 } catch (error) {
                     console.error(`Error fetching ${tokenName} stake info:`, error);
                 }
             }
         };
-
+    
         if (isConnected) {
-            fetchStakeInfo(usdtAddress, "USDT");
-            fetchStakeInfo(wbtcAddress, "BTC");
-            fetchStakeInfo(wethAddress, "ETH");
+            // Fetch staking information for each token
+            if (web3 && contract && address) {
+                fetchStakeInfo(usdtAddress, "USDT");
+                fetchStakeInfo(wbtcAddress, "BTC");
+                fetchStakeInfo(wethAddress, "ETH");
+            }
         }
     }, [web3, contract, address, isConnected]);
-
+    
 
     // Function to handle staking USDT
     const handleStakeUSDT = async () => {
