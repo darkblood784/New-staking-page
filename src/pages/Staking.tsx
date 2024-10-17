@@ -149,12 +149,25 @@ function Staking() {
 
     // Fetch staking information for USDT, BTC, and ETH when web3, contract, and address are available
     useEffect(() => {
+        let isMounted = true;  // Flag to prevent updating state if component is unmounted
+    
         const fetchStakeInfo = async (tokenAddress: string, tokenName: string) => {
             if (web3 && contract && address) {
                 try {
+                    // Set loading state initially
+                    if (isMounted) {
+                        setStakedAmount(prev => ({ ...prev, [tokenName]: null }));
+                    }
+                    
+                    // Fetch the staked information for the given token address
                     const stakedInfo = await contract.methods.userStakeInfos(address, tokenAddress).call();
+                    // Convert the staked amount from Wei to Ether unit
                     const stakedAmountValue = Number(web3.utils.fromWei(stakedInfo.stakedAmount, "ether"));
-                    setStakedAmount(prev => ({ ...prev, [tokenName]: stakedAmountValue }));
+    
+                    if (isMounted) {
+                        // Update the staked amount state
+                        setStakedAmount(prev => ({ ...prev, [tokenName]: stakedAmountValue }));
+                    }
                 } catch (error) {
                     console.error(`Error fetching ${tokenName} stake info:`, error);
                 }
@@ -166,7 +179,12 @@ function Staking() {
             fetchStakeInfo(wbtcAddress, "BTC");
             fetchStakeInfo(wethAddress, "ETH");
         }
+    
+        return () => {
+            isMounted = false; // Cleanup to avoid setting state if the component is unmounted
+        };
     }, [web3, contract, address, isConnected]);
+    
     
     
     
