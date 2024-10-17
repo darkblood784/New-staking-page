@@ -61,7 +61,11 @@ function Staking() {
     const { isConnected, address } = useAccount(); // To get wallet address and connection status
     const [web3, setWeb3] = useState<Web3 | null>(null);
     const [contract, setContract] = useState<any>(null);
-    const [stakeInfo, setStakeInfo] = useState<any>(null);
+    const [stakedAmount, setStakedAmount] = useState<{ [key: string]: number | null }>({
+        USDT: null,
+        BTC: null,
+        ETH: null,
+    });
 
     useEffect(() => {
         if (isConnected && window.ethereum) {
@@ -72,84 +76,52 @@ function Staking() {
         }
     }, [isConnected]);
 
-    // Function to fetch staking information for connected wallet
+    // Fetch staking information for USDT, BTC, and ETH when web3, contract, and address are available
     useEffect(() => {
-        const fetchStakeInfo = async () => {
+        const fetchStakeInfo = async (tokenAddress: string, tokenName: string) => {
             if (web3 && contract && address) {
                 try {
-                    const stakedInfo = await contract.methods.userStakeInfos(address, usdtAddress).call();
-                    setStakeInfo(stakedInfo);
+                    const stakedInfo = await contract.methods.userStakeInfos(address, tokenAddress).call();
+                    const stakedAmount = Number(web3.utils.fromWei(stakedInfo.stakedAmount, "ether"));
+                    setStakedAmount(prev => ({ ...prev, [tokenName]: stakedAmount }));
                 } catch (error) {
-                    console.error("Error fetching stake info:", error);
+                    console.error(`Error fetching ${tokenName} stake info:`, error);
                 }
             }
         };
 
         if (isConnected) {
-            fetchStakeInfo();
+            fetchStakeInfo(usdtAddress, "USDT");
+            fetchStakeInfo(wbtcAddress, "BTC");
+            fetchStakeInfo(wethAddress, "ETH");
         }
-    }, [web3, contract, address]);
+    }, [web3, contract, address, isConnected]);
 
-    // Function to fetch staking information for connected wallet
-    useEffect(() => {
-        const fetchStakeInfo = async () => {
-            if (web3 && contract && address) {
-                try {
-                    const stakedInfo = await contract.methods.userStakeInfos(address, wbtcAddress).call();
-                    setStakeInfo(stakedInfo);
-                } catch (error) {
-                    console.error("Error fetching stake info:", error);
-                }
-            }
-        };
-
-        if (isConnected) {
-            fetchStakeInfo();
-        }
-    }, [web3, contract, address]);
-
-    // Function to fetch staking information for connected wallet
-    useEffect(() => {
-        const fetchStakeInfo = async () => {
-            if (web3 && contract && address) {
-                try {
-                    const stakedInfo = await contract.methods.userStakeInfos(address, wethAddress).call();
-                    setStakeInfo(stakedInfo);
-                } catch (error) {
-                    console.error("Error fetching stake info:", error);
-                }
-            }
-        };
-
-        if (isConnected) {
-            fetchStakeInfo();
-        }
-    }, [web3, contract, address]);
 
     // Function to handle staking USDT
-const handleStakeUSDT = async () => {
-    if (!web3 || !contract || !address) {
-      alert("Please connect your wallet first!");
-      return;
-    }
-  
-    try {
-      // Convert input value to Wei (since blockchain uses Wei for transactions)
-      const amountToStake = web3.utils.toWei(inputValueusdt, "ether");
-  
-      // Determine duration in months
-      const durationInMonths = usdtduration === '30 Days' ? 1 : usdtduration === '6 Months' ? 6 : 12;
-  
-      // Call the stake function of the smart contract
-      await contract.methods.stake(usdtAddress, durationInMonths, amountToStake)
-        .send({ from: address });
-  
-      alert("Staked successfully!");
-    } catch (error) {
-      console.error("Staking error:", error);
-      alert("Staking failed. Please try again.");
-    }
-  };
+    const handleStakeUSDT = async () => {
+        if (!web3 || !contract || !address) {
+            alert("Please connect your wallet first!");
+            return;
+        }
+
+        try {
+            // Convert input value to Wei (since blockchain uses Wei for transactions)
+            const amountToStake = web3.utils.toWei(inputValueusdt, "ether");
+
+            // Determine duration in months
+            const durationInMonths = usdtduration === '30 Days' ? 1 : usdtduration === '6 Months' ? 6 : 12;
+
+            // Call the stake function of the smart contract
+            await contract.methods.stake(usdtAddress, durationInMonths, amountToStake)
+                .send({ from: address });
+
+            alert("Staked successfully!");
+        } catch (error) {
+            console.error("Staking error:", error);
+            alert("Staking failed. Please try again.");
+        }
+    };
   
 
 
@@ -215,46 +187,28 @@ const handleStakeUSDT = async () => {
                 <p className="md:text-[20px] text-[13px] items-end flex">{t('risk')}</p>
             </div>
 
-            {/* USDT Section */}
-            <div className="flex flex-wrap w-full relative mt-10">
-                <img src={usdtbackground} className="absolute w-full h-full" alt="" />
-                <div className="p-2 flex flex-wrap w-full relative z-10 md:p-0 md:justify-between">
-                    <div className="my-auto pt-5 md:pt-0 ml-2 w-full md:w-[35%] lg:ml-10">
+            {/* My Staking Section for USDT */}
+            <div className="flex flex-wrap w-full lg:w-[47%] relative mt-10">
+                <img src={mystake} className="absolute w-full h-full" alt="" />
+                <div className="p-2 m-2 md:m-10 w-full relative z-10 md:p-0 md:justify-between">
+                    <div className="my-autow-full md:w-[35%] ">
                         <div className="flex items-center">
                             <img src={usdt} alt="" className="w-14 h-14 mr-4" />
                             <p className="text-[35px] md:text-[30px] font-bold flex">USDT</p>
                         </div>
-                        <DurationSelector durations={durationOptions} setDuration={setUsdtDuration} />
-
                     </div>
-                    <div className="w-full md:w-[30%] lg:pl-10 pt-16 pb-5">
-                        <div className="flex justify-between">
-                            <p className="text-[25px] md">{t('stake')}</p>
-                            <PrimeInput
-                                value={inputValueusdt}
-                                setValue={setInputValueusdt}
-                                validatePrime={validatePrime}
-
-                            />
+                    <div className="flex mt-10 justify-between">
+                        <div className="w-1/2">
+                            <p>{t('total')}</p>
+                            <p className="flex">
+                                <span className="text-[25px] md:text-[40px]">
+                                    {stakedAmount.USDT !== null ? stakedAmount.USDT : 'Loading...'}
+                                </span>
+                                <span className="text-[13px] mt-3 ml-2 md:mt-6 md:ml-4">
+                                    {stakedAmount.USDT !== null ? `USDT~$${stakedAmount.USDT}` : ''}
+                                </span>
+                            </p>
                         </div>
-                        <div className="flex w-full justify-between">
-                            <p className="text-[25px] md">{usdtduration ? usdtduration : "0 Days"}</p>
-                            <div className="text-2xl mt-2.5">{`${Math.round(sliderValueusdt)}%`}</div>
-                        </div>
-                        <WhaleSlider
-                            sliderValue={sliderValueusdt}
-                            setSliderValue={setSliderValueusdt}
-                            getWhaleHeadSrc={getWhaleHeadSrcusdt}
-                        />
-                    </div>
-                    {/* Stake Button */}
-                    <div className="w-full h-20 md:w-1/4 md:h-full opacity-50 bg-black rounded-2xl flex justify-center items-center cursor-pointer">
-                        <button
-                            onClick={handleStakeUSDT} // <-- Add this line
-                            className="bg-blue-500 text-white p-2 rounded-md mt-4"
-                        >
-                            {t('take')}
-                        </button>
                     </div>
                 </div>
             </div>
