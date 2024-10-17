@@ -124,20 +124,28 @@ function Staking() {
         }
     }, [web3, address, isConnected]);
     
+
+    useEffect(() => {
+        if (isConnected && window.ethereum) {
+            const _web3 = new Web3(window.ethereum);
+            setWeb3(_web3);
+            const _contract = new _web3.eth.Contract(contractABI, contractAddress);
+            setContract(_contract);
+        }
+    }, [isConnected]);
+    
+
     // Fetch staking information for USDT, BTC, and ETH when web3, contract, and address are available
     useEffect(() => {
         const fetchStakeInfo = async (tokenAddress: string, tokenName: string) => {
             if (web3 && contract && address) {
                 try {
+                    // Fetch the staked information for the given token address
                     const stakedInfo = await contract.methods.userStakeInfos(address, tokenAddress).call();
-                    
-                    // Ensure `stakedInfo.stakedAmount` is defined and not void
-                    if (stakedInfo?.stakedAmount) {
-                        const stakedAmount = Number(web3.utils.fromWei(stakedInfo.stakedAmount, "ether"));
-                        setStakedAmount(prev => ({ ...prev, [tokenName]: stakedAmount }));
-                    } else {
-                        console.error(`Invalid stakedAmount for ${tokenName}`);
-                    }
+                    // Convert the staked amount from Wei to Ether unit
+                    const stakedAmountValue = Number(web3.utils.fromWei(stakedInfo.stakedAmount, "ether"));
+                    // Update the staked amount state
+                    setStakedAmount(prev => ({ ...prev, [tokenName]: stakedAmountValue }));
                 } catch (error) {
                     console.error(`Error fetching ${tokenName} stake info:`, error);
                 }
@@ -145,14 +153,12 @@ function Staking() {
         };
     
         if (isConnected) {
-            // Fetch staking information for each token
-            if (web3 && contract && address) {
-                fetchStakeInfo(usdtAddress, "USDT");
-                fetchStakeInfo(wbtcAddress, "BTC");
-                fetchStakeInfo(wethAddress, "ETH");
-            }
+            fetchStakeInfo(usdtAddress, "USDT");
+            fetchStakeInfo(wbtcAddress, "BTC");
+            fetchStakeInfo(wethAddress, "ETH");
         }
     }, [web3, contract, address, isConnected]);
+    
     
 
     // Function to handle staking USDT
@@ -407,10 +413,10 @@ function Staking() {
                                 <p>{t('total')}</p>
                                 <p className="flex">
                                     <span className="text-[25px] md:text-[40px]">
-                                        {stakedAmount.USDT !== null ? stakedAmount.USDT : 'Loading...'}
+                                        {stakedAmount.USDT !== null ? stakedAmount.USDT.toFixed(2) : 'Loading...'}
                                     </span>
                                     <span className="text-[13px] mt-3 ml-2 md:mt-6 md:ml-4">
-                                        {stakedAmount.USDT !== null ? `USDT~$${stakedAmount.USDT}` : ''}
+                                        {stakedAmount.USDT !== null ? `USDT~$${stakedAmount.USDT.toFixed(2)}` : ''}
                                     </span>
                                 </p>
                             </div>
@@ -428,6 +434,7 @@ function Staking() {
                         </div>
                     </div>
                 </div>
+
                 {/* BTC Section */}
                 <div className="flex flex-wrap w-full lg:w-[47%] relative mt-10">
                     <img src={mystake} className="absolute w-full h-full" alt="" />
