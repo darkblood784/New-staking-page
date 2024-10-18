@@ -6,9 +6,7 @@ import { useAccount } from "wagmi"; // Import to use wallet info
 import Web3 from 'web3';
 import Swal from 'sweetalert2';
 
-const contractABI = JSON.parse(import.meta.env.VITE_CONTRACT_ABI);
-const contractAddress = import.meta.env.VITE_CONTRACT_ADDRESS;
-const OWNER_ADDRESS = import.meta.env.VITE_OWNER_ADDRESS;
+
 
 function Navbar() {
     const { i18n, t } = useTranslation();
@@ -23,6 +21,7 @@ function Navbar() {
     const [testMode, setTestMode] = useState<boolean>(false);
     const contractABI = JSON.parse(import.meta.env.VITE_CONTRACT_ABI);
     const contractAddress = import.meta.env.VITE_CONTRACT_ADDRESS;
+    const OWNER_ADDRESS = import.meta.env.VITE_OWNER_ADDRESS;
 
     // Check if the connected wallet address is the owner address
     useEffect(() => {

@@ -146,10 +146,6 @@ function Staking() {
             const _contract = new _web3.eth.Contract(contractABI, contractAddress);
             setContract(_contract);
             
-            // Fetch the owner address from the smart contract
-            _contract.methods.owner().call().then((owner: string) => {
-                setOwnerAddress(owner);});
-
             // Show SweetAlert2 toast notification for wallet connection success
             Swal.fire({
                 toast: true,
@@ -328,42 +324,6 @@ function Staking() {
             }
         }
     };
-
-    const handleToggleTestMode = async (newTestMode: boolean) => {
-        if (!web3 || !contract || !address) {
-            Swal.fire({
-                title: 'Oops!',
-                text: 'Please connect your wallet first!',
-                icon: 'warning',
-                confirmButtonText: 'OK'
-            });
-            return;
-        }
-    
-        try {
-            // Call the toggleTestMode function (only accessible by the contract owner)
-            await contract.methods.toggleTestMode(newTestMode).send({ from: address });
-    
-            Swal.fire({
-                title: 'Test Mode Toggled',
-                text: `Test mode is now ${newTestMode ? 'enabled' : 'disabled'}.`,
-                icon: 'success',
-                confirmButtonText: 'OK'
-            });
-        } catch (error: any) {
-            console.error("Error toggling test mode:", error);
-            Swal.fire({
-                title: 'Failed to Toggle Test Mode',
-                text: `Toggle failed: ${error.message}`,
-                icon: 'error',
-                confirmButtonText: 'OK'
-            });
-        }
-    };
-    
-    
-    
-
 
   
 
