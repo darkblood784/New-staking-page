@@ -148,29 +148,45 @@ function Staking() {
     
 
     useEffect(() => {
-        const fetchStakeInfo = async (tokenAddress: string, tokenName: string) => {
+        const fetchStakeInfo = async () => {
             if (web3 && contract && address) {
                 try {
-                    console.log(`Attempting to fetch staked info for ${tokenName}`);
-                    const stakedInfo = await contract.methods.userStakeInfos(address, tokenAddress).call();
-                    console.log(`Staked info fetched for ${tokenName}:`, stakedInfo);
-                    const stakedAmount = Number(web3.utils.fromWei(stakedInfo.stakedAmount, "ether"));
-                    setStakedAmount(prev => ({ ...prev, [tokenName]: stakedAmount }));
+                    console.log("Fetching staked info for all tokens...");
+                    const tokens = [
+                        { address: usdtAddress, name: "USDT" },
+                        { address: wbtcAddress, name: "BTC" },
+                        { address: wethAddress, name: "ETH" }
+                    ];
+                    
+                    const promises = tokens.map(async token => {
+                        const stakedInfo = await contract.methods.userStakeInfos(address, token.address).call();
+                        return {
+                            name: token.name,
+                            amount: Number(web3.utils.fromWei(stakedInfo.stakedAmount, "ether"))
+                        };
+                    });
+    
+                    const results = await Promise.all(promises);
+                    const newStakedAmount = results.reduce((acc, curr) => {
+                        acc[curr.name] = curr.amount;
+                        return acc;
+                    }, {});
+    
+                    console.log("Staked info fetched:", newStakedAmount);
+                    setStakedAmount(prev => ({ ...prev, ...newStakedAmount }));
                 } catch (error) {
-                    console.error(`Error fetching ${tokenName} stake info:`, error);
-                    setStakedAmount(prev => ({ ...prev, [tokenName]: null }));
+                    console.error("Error fetching staking information:", error);
                 }
             } else {
-                console.warn(`Missing web3, contract, or address for ${tokenName}`);
+                console.warn("Missing web3, contract, or address");
             }
         };
     
         if (isConnected) {
-            fetchStakeInfo(usdtAddress, "USDT");
-            fetchStakeInfo(wbtcAddress, "BTC");
-            fetchStakeInfo(wethAddress, "ETH");
+            fetchStakeInfo();
         }
     }, [web3, contract, address, isConnected]);
+    
     
     
     
@@ -255,6 +271,18 @@ function Staking() {
         <div className="flex flex-col w-full items-center text-white">
             <div className="flex h-screen w-full items-center text-[40px] my-[20px] md:my-0 md:text-[80px] relative justify-center">
                 <img src={banner} alt="Whale" className="absolute w-full h-[100%] my-[20px] md:h-[auto]" />
+                {/* SVG Waves */}
+                <svg
+                    className="waves"
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 1440 320"
+                >
+                    <path
+                        fill="#0099ff"
+                        fillOpacity="1"
+                        d="M0,256L48,245.3C96,235,192,213,288,192C384,171,480,149,576,160C672,171,768,213,864,224C960,235,1056,213,1152,202.7C1248,192,1344,192,1392,192L1440,192L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"
+                    />
+                </svg>
                 <div className="relative z-10 flex flex-col justify-center items-start w-full h-full px-4 mb-[-40px]">
                     <h1 className="font-bold">{t('swim')}</h1>
                     <h1 className="font-bold">{t('earn')}</h1>
