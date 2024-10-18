@@ -153,7 +153,7 @@ function Staking() {
                 icon: 'success',
                 title: 'Wallet connected successfully!',
                 showConfirmButton: false,
-                timer: 4500,
+                timer: 3000,
                 timerProgressBar: true
             });
         }
