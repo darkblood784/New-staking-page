@@ -158,7 +158,7 @@ function Staking() {
                     setStakedAmount(prev => ({ ...prev, [tokenName]: stakedAmount }));
                 } catch (error) {
                     console.error(`Error fetching ${tokenName} stake info:`, error);
-                    setStakedAmount(prev => ({ ...prev, [tokenName]: 'Error' }));
+                    setStakedAmount(prev => ({ ...prev, [tokenName]: null }));
                 }
             } else {
                 console.warn(`Missing web3, contract, or address for ${tokenName}`);
