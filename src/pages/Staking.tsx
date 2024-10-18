@@ -167,7 +167,7 @@ function Staking() {
                     });
     
                     const results = await Promise.all(promises);
-                    const newStakedAmount = results.reduce((acc, curr) => {
+                    const newStakedAmount = results.reduce<{ [key: string]: number }>((acc, curr) => {
                         acc[curr.name] = curr.amount;
                         return acc;
                     }, {});
