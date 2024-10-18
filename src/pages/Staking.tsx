@@ -145,8 +145,20 @@ function Staking() {
             setWeb3(_web3);
             const _contract = new _web3.eth.Contract(contractABI, contractAddress);
             setContract(_contract);
+            
+            // Show SweetAlert2 toast notification for wallet connection success
+            Swal.fire({
+                toast: true,
+                position: 'top-end',
+                icon: 'success',
+                title: 'Wallet connected successfully!',
+                showConfirmButton: false,
+                timer: 4500,
+                timerProgressBar: true
+            });
         }
     }, [isConnected]);
+    
     
 
     useEffect(() => {
