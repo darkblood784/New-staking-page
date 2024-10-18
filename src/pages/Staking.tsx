@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import Web3 from "web3";
 import { useAccount } from "wagmi"; // Import to use wallet info
 import usdtABI from "../usdtABI.json";
-
+import Swal from 'sweetalert2';
 
 
 import banner from '../assets/banner.png';
@@ -190,27 +190,42 @@ function Staking() {
     }, [web3, contract, address, isConnected]);
     
 
+
     // Function to handle staking USDT
     const handleStakeUSDT = async () => {
-        // Check if wallet is connected
         if (!web3 || !contract || !address) {
-            alert("Please connect your wallet first!");
-            return; // Stop here if the wallet isn't connected
-        }
-
-        // Validate input amount for staking
-        if (!inputValueusdt || parseFloat(inputValueusdt) <= 0) {
-            alert("Please enter a valid amount greater than zero to stake.");
-            return; // Stop if the input value is not greater than 0
-        }
-
-        // Validate if a staking duration is selected
-        if (!usdtduration) {
-            alert("Please select a staking duration.");
-            return; // Stop if staking duration is not selected
+            Swal.fire({
+                title: 'Oops!',
+                text: 'Please connect your wallet first!',
+                icon: 'warning',
+                confirmButtonText: 'OK'
+            });
+            return;
         }
 
         try {
+            // Validate input amount
+            if (!inputValueusdt || parseFloat(inputValueusdt) <= 0) {
+                Swal.fire({
+                    title: 'Invalid Input',
+                    text: 'Please enter a valid amount greater than zero to stake.',
+                    icon: 'error',
+                    confirmButtonText: 'OK'
+                });
+                return;
+            }
+
+            // Validate duration selection
+            if (!usdtduration) {
+                Swal.fire({
+                    title: 'Select Duration',
+                    text: 'Please select a staking duration.',
+                    icon: 'info',
+                    confirmButtonText: 'OK'
+                });
+                return;
+            }
+
             // Convert input value to Wei (since blockchain uses Wei for transactions)
             const amountToStake = web3.utils.toWei(inputValueusdt, "ether");
 
@@ -221,18 +236,32 @@ function Staking() {
             await contract.methods.stake(usdtAddress, durationInMonths, amountToStake)
                 .send({ from: address });
 
-            alert("Staked successfully!");
-        } catch (error: any) {
+            Swal.fire({
+                title: 'Success!',
+                text: 'Staked successfully!',
+                icon: 'success',
+                confirmButtonText: 'OK'
+            });
+        } catch (error) {
             console.error("Staking error:", error);
-            
-            // Handle specific error messages if needed
             if (error.message && error.message.includes("User denied transaction")) {
-                alert("Transaction was denied by the user.");
+                Swal.fire({
+                    title: 'Transaction Denied',
+                    text: 'Transaction was denied by the user.',
+                    icon: 'warning',
+                    confirmButtonText: 'OK'
+                });
             } else {
-                alert(`Staking failed: ${error.message}`);
+                Swal.fire({
+                    title: 'Staking Failed',
+                    text: `Staking failed: ${error.message}`,
+                    icon: 'error',
+                    confirmButtonText: 'OK'
+                });
             }
-        }        
+        }
     };
+
 
   
 
