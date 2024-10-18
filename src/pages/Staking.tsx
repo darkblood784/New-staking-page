@@ -242,7 +242,7 @@ function Staking() {
                 icon: 'success',
                 confirmButtonText: 'OK'
             });
-        } catch (error) {
+        } catch (error: any) {
             console.error("Staking error:", error);
             if (error.message && error.message.includes("User denied transaction")) {
                 Swal.fire({
