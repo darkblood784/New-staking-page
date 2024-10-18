@@ -146,6 +146,10 @@ function Staking() {
             const _contract = new _web3.eth.Contract(contractABI, contractAddress);
             setContract(_contract);
             
+            // Fetch the owner address from the smart contract
+            _contract.methods.owner().call().then((owner: string) => {
+                setOwnerAddress(owner);});
+
             // Show SweetAlert2 toast notification for wallet connection success
             Swal.fire({
                 toast: true,
@@ -203,7 +207,6 @@ function Staking() {
     
 
 
-    // Function to handle staking USDT
     const handleStakeUSDT = async () => {
         if (!web3 || !contract || !address) {
             Swal.fire({
@@ -214,7 +217,7 @@ function Staking() {
             });
             return;
         }
-
+    
         try {
             // Validate input amount
             if (!inputValueusdt || parseFloat(inputValueusdt) <= 0) {
@@ -226,7 +229,7 @@ function Staking() {
                 });
                 return;
             }
-
+    
             // Validate duration selection
             if (!usdtduration) {
                 Swal.fire({
@@ -237,26 +240,36 @@ function Staking() {
                 });
                 return;
             }
-
+    
             // Convert input value to Wei (since blockchain uses Wei for transactions)
             const amountToStake = web3.utils.toWei(inputValueusdt, "ether");
-
+    
             // Determine duration in months
             const durationInMonths = usdtduration === '30 Days' ? 1 : usdtduration === '6 Months' ? 6 : 12;
-
+    
             // Call the stake function of the smart contract
             await contract.methods.stake(usdtAddress, durationInMonths, amountToStake)
                 .send({ from: address });
-
+    
             Swal.fire({
                 title: 'Success!',
                 text: 'Staked successfully!',
                 icon: 'success',
                 confirmButtonText: 'OK'
             });
+    
         } catch (error: any) {
             console.error("Staking error:", error);
-            if (error.message && error.message.includes("User denied transaction")) {
+            
+            // Check if the error message includes "Already staked"
+            if (error.message && error.message.includes("Already staked")) {
+                Swal.fire({
+                    title: 'Staking Error',
+                    text: 'You have already staked your tokens. Please unstake or wait until your current staking period ends.',
+                    icon: 'error',
+                    confirmButtonText: 'OK'
+                });
+            } else if (error.message && error.message.includes("User denied transaction")) {
                 Swal.fire({
                     title: 'Transaction Denied',
                     text: 'Transaction was denied by the user.',
@@ -273,6 +286,83 @@ function Staking() {
             }
         }
     };
+
+
+    const handleUnstake = async (tokenAddress: string) => {
+        if (!web3 || !contract || !address) {
+            Swal.fire({
+                title: 'Oops!',
+                text: 'Please connect your wallet first!',
+                icon: 'warning',
+                confirmButtonText: 'OK'
+            });
+            return;
+        }
+    
+        try {
+            // Call the unstake function of the smart contract
+            await contract.methods.unstake(tokenAddress).send({ from: address });
+    
+            Swal.fire({
+                title: 'Success!',
+                text: 'Unstaked successfully!',
+                icon: 'success',
+                confirmButtonText: 'OK'
+            });
+        } catch (error: any) {
+            console.error("Unstaking error:", error);
+            if (error.message && error.message.includes("User denied transaction")) {
+                Swal.fire({
+                    title: 'Transaction Denied',
+                    text: 'Transaction was denied by the user.',
+                    icon: 'warning',
+                    confirmButtonText: 'OK'
+                });
+            } else {
+                Swal.fire({
+                    title: 'Unstaking Failed',
+                    text: `Unstaking failed: ${error.message}`,
+                    icon: 'error',
+                    confirmButtonText: 'OK'
+                });
+            }
+        }
+    };
+
+    const handleToggleTestMode = async (newTestMode: boolean) => {
+        if (!web3 || !contract || !address) {
+            Swal.fire({
+                title: 'Oops!',
+                text: 'Please connect your wallet first!',
+                icon: 'warning',
+                confirmButtonText: 'OK'
+            });
+            return;
+        }
+    
+        try {
+            // Call the toggleTestMode function (only accessible by the contract owner)
+            await contract.methods.toggleTestMode(newTestMode).send({ from: address });
+    
+            Swal.fire({
+                title: 'Test Mode Toggled',
+                text: `Test mode is now ${newTestMode ? 'enabled' : 'disabled'}.`,
+                icon: 'success',
+                confirmButtonText: 'OK'
+            });
+        } catch (error: any) {
+            console.error("Error toggling test mode:", error);
+            Swal.fire({
+                title: 'Failed to Toggle Test Mode',
+                text: `Toggle failed: ${error.message}`,
+                icon: 'error',
+                confirmButtonText: 'OK'
+            });
+        }
+    };
+    
+    
+    
 
 
   
