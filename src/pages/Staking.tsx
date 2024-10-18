@@ -48,7 +48,6 @@ const usdtAddress = import.meta.env.VITE_USDT_ADDRESS;
 const wbtcAddress = import.meta.env.VITE_WBTC_ADDRESS;
 const wethAddress = import.meta.env.VITE_WETH_ADDRESS;
 
-const BSC_WS_URL = "wss://data-seed-prebsc-1-s1.binance.org:8545/";
 
 
 function Staking() {
@@ -140,23 +139,16 @@ function Staking() {
     
     
 
-    // Initialize Web3 with WebSocket provider when connected
     useEffect(() => {
-        if (isConnected) {
-            // Initialize Web3 instance with WebSocket provider
-            const _web3 = new Web3(new Web3.providers.WebsocketProvider(BSC_WS_URL));
+        if (isConnected && window.ethereum) {
+            const _web3 = new Web3(window.ethereum);
             setWeb3(_web3);
-
-            // Set up the contract instance
             const _contract = new _web3.eth.Contract(contractABI, contractAddress);
             setContract(_contract);
-
-            // Log to indicate that WebSocket provider has been initialized
-            console.log("WebSocket provider initialized");
         }
     }, [isConnected]);
+    
 
-    // Fetch staked information from contract using WebSocket
     useEffect(() => {
         const fetchStakeInfo = async () => {
             if (web3 && contract && address) {
@@ -167,8 +159,7 @@ function Staking() {
                         { address: wbtcAddress, name: "BTC" },
                         { address: wethAddress, name: "ETH" }
                     ];
-
-                    // Fetch staked amounts for each token asynchronously
+                    
                     const promises = tokens.map(async token => {
                         const stakedInfo = await contract.methods.userStakeInfos(address, token.address).call();
                         return {
@@ -176,13 +167,13 @@ function Staking() {
                             amount: Number(web3.utils.fromWei(stakedInfo.stakedAmount, "ether"))
                         };
                     });
-
+    
                     const results = await Promise.all(promises);
                     const newStakedAmount = results.reduce<{ [key: string]: number }>((acc, curr) => {
                         acc[curr.name] = curr.amount;
                         return acc;
                     }, {});
-
+    
                     console.log("Staked info fetched:", newStakedAmount);
                     setStakedAmount(prev => ({ ...prev, ...newStakedAmount }));
                 } catch (error) {
@@ -192,129 +183,58 @@ function Staking() {
                 console.warn("Missing web3, contract, or address");
             }
         };
-
+    
         if (isConnected) {
             fetchStakeInfo();
         }
     }, [web3, contract, address, isConnected]);
     
-    
-    const hasUserStaked = async (tokenAddress: string) => {
-        try {
-            // Use call() to interact with the smart contract without sending a transaction
-            const userStakeInfo = await contract.methods.userStakeInfos(address, tokenAddress).call();
-            
-            // Check if stakedAmount is greater than 0
-            if (parseFloat(userStakeInfo.stakedAmount) > 0) {
-                return true; // User has already staked
-            }
-            return false; // User has not staked yet
-        } catch (error) {
-            console.error("Error checking user stake status:", error);
-            return false; // Assume user has not staked if there's an error
-        }
-    };
-    
+
+    // Function to handle staking USDT
     const handleStakeUSDT = async () => {
+        // Check if wallet is connected
+        if (!web3 || !contract || !address) {
+            alert("Please connect your wallet first!");
+            return; // Stop here if the wallet isn't connected
+        }
+
+        // Validate input amount for staking
+        if (!inputValueusdt || parseFloat(inputValueusdt) <= 0) {
+            alert("Please enter a valid amount greater than zero to stake.");
+            return; // Stop if the input value is not greater than 0
+        }
+
+        // Validate if a staking duration is selected
+        if (!usdtduration) {
+            alert("Please select a staking duration.");
+            return; // Stop if staking duration is not selected
+        }
+
         try {
-            // 1. Check if wallet is connected
-            if (!web3 || !contract || !address) {
-                alert("Please connect your wallet first!");
-                console.log("Step 1: Wallet connection check failed.");
-                return; // Stop here if the wallet isn't connected
-            }
-            console.log("Step 1: Wallet connection check passed.");
-    
-            // 2. Check if input amount is valid
-            if (!inputValueusdt || parseFloat(inputValueusdt) <= 0) {
-                alert("Please enter a valid amount greater than zero to stake.");
-                return; // Stop if the user did not enter a valid amount
-            }
-            console.log("Step 2: Input amount validated:", inputValueusdt);
-    
-            // 3. Check if the user selected a staking duration
-            if (!usdtduration) {
-                alert("Please select a staking duration.");
-                return; // Stop if the staking duration is not selected
-            }
-            console.log("Step 3: Duration selected:", usdtduration);
-    
-            // 4. Check if user has already staked by looking at past events
-            let events;
-            try {
-                events = await contract.getPastEvents('Stake', {
-                    filter: { user: address }, // Only filter by the user's address
-                    fromBlock: 0, // Start checking from the beginning of the blockchain
-                    toBlock: 'latest' // Check until the latest block
-                });
-    
-                // If we find events, it means the user has already staked
-                if (events.length > 0) {
-                    alert("You have already staked your tokens.");
-                    console.log("Step 4: User has already staked tokens.");
-                    return; // Stop here if the user already staked
-                }
-                console.log("Step 4: No existing stakes found for user.");
-            } catch (eventError) {
-                console.error("Error fetching events:", eventError);
-                alert("Failed to check if tokens are already staked. Please try again later.");
-                return; // Stop if we can't check for past staking events
-            }
-    
-            // 5. Check if user is on the correct network (BSC Testnet)
-            const chainId = await web3.eth.getChainId().catch((error) => {
-                console.error("Failed to retrieve network information:", error);
-                alert("Failed to retrieve network information. Please check your wallet connection.");
-                return null; // Return null to indicate that chainId retrieval failed
-            });
-    
-            if (chainId === null) {
-                return; // Stop if we couldn't get the chain ID
-            }
-    
-            console.log("Step 5: Chain ID retrieved:", chainId);
-            
-            if (Number(chainId) !== 97) { // 97 is the chain ID for BSC Testnet
-                alert("Please connect to the BSC Testnet network to proceed.");
-                console.log("Step 5: Incorrect network detected. Chain ID:", chainId);
-                return; // Stop if the user is not on BSC Testnet
-            }
-            console.log("Step 5: Correct network detected - BSC Testnet.");
-    
-            // 6. Convert the input value to the format the blockchain understands
+            // Convert input value to Wei (since blockchain uses Wei for transactions)
             const amountToStake = web3.utils.toWei(inputValueusdt, "ether");
-    
-            // 7. Determine the duration in months
+
+            // Determine duration in months
             const durationInMonths = usdtduration === '30 Days' ? 1 : usdtduration === '6 Months' ? 6 : 12;
-    
-            // Define token address for USDT
-            const tokenAddress = usdtAddress; // Make sure usdtAddress is defined with the address of the USDT token contract
-    
-            console.log("Step 6: Ready to stake tokens. Token address:", tokenAddress);
-            
-            // 8. Finally, call the staking function
-            await contract.methods.stake(tokenAddress, durationInMonths, amountToStake)
+
+            // Call the stake function of the smart contract
+            await contract.methods.stake(usdtAddress, durationInMonths, amountToStake)
                 .send({ from: address });
-    
-            alert("Staked successfully!"); // Let the user know that staking succeeded
-            console.log("Step 8: Staked successfully.");
-        } catch (error) {
+
+            alert("Staked successfully!");
+        } catch (error: any) {
             console.error("Staking error:", error);
             
-            // Cast error to Error type to ensure TypeScript understands the structure of the error object
-            const errorMessage = (error as Error).message;
-    
-            if (errorMessage.includes("User denied transaction")) {
+            // Handle specific error messages if needed
+            if (error.message && error.message.includes("User denied transaction")) {
                 alert("Transaction was denied by the user.");
             } else {
-                alert(`Staking failed: ${errorMessage}`);
+                alert(`Staking failed: ${error.message}`);
             }
-        }
+        }        
     };
-    
-    
-    
-    
+
+  
 
 
     const durationOptions = [
