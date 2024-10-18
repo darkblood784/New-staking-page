@@ -74,31 +74,44 @@ function Staking() {
         BTC: null,
         ETH: null,
     });
+    const [stakeRewards, setStakeRewards] = useState<{ [key: string]: number | null }>({
+        USDT: null,
+        BTC: null,
+        ETH: null,
+    });
+    const [stakeEnd, setStakeEnd] = useState<{ [key: string]: number | null }>({
+        USDT: null,
+        BTC: null,
+        ETH: null,
+    });
+    const [stakedOn, setStakedOn] = useState<{ [key: string]: number | null }>({
+        USDT: null,
+        BTC: null,
+        ETH: null,
+    });
 
 
     useEffect(() => {
-        if (window.ethereum) {
-            const web3Instance = new Web3(window.ethereum);
-            setWeb3(web3Instance);
-    
-            // Explicitly declare accounts type as string[]
-            const handleAccountsChanged = (accounts: string[]) => {
-                if (accounts.length > 0) {
-                    setWeb3(new Web3(window.ethereum));
-                    // This will automatically trigger the useEffect hook to fetch the new balance
-                } else {
-                    setUsdtWalletBalance("Not connected");
-                }
-            };
-    
-            window.ethereum.on('accountsChanged', handleAccountsChanged);
-    
-            return () => {
-                window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
-            };
+        if (isConnected && window.ethereum) {
+            const _web3 = new Web3(window.ethereum);
+            setWeb3(_web3);
+            const _contract = new _web3.eth.Contract(contractABI, contractAddress);
+            setContract(_contract);
+            
+            // Show SweetAlert2 toast notification for wallet connection success
+            Swal.fire({
+                toast: true,
+                position: 'top-end',
+                icon: 'success',
+                title: 'Wallet connected successfully!',
+                showConfirmButton: false,
+                timer: 3000,
+                timerProgressBar: true
+            });
         }
-    }, []);
+    }, [isConnected]);
     
+
     // Fetch wallet balance function to be called in useEffect
     useEffect(() => {
         const fetchWalletBalance = async () => {
@@ -136,31 +149,9 @@ function Staking() {
             fetchWalletBalance();
         }
     }, [web3, address, isConnected]);
-    
-    
 
-    useEffect(() => {
-        if (isConnected && window.ethereum) {
-            const _web3 = new Web3(window.ethereum);
-            setWeb3(_web3);
-            const _contract = new _web3.eth.Contract(contractABI, contractAddress);
-            setContract(_contract);
-            
-            // Show SweetAlert2 toast notification for wallet connection success
-            Swal.fire({
-                toast: true,
-                position: 'top-end',
-                icon: 'success',
-                title: 'Wallet connected successfully!',
-                showConfirmButton: false,
-                timer: 3000,
-                timerProgressBar: true
-            });
-        }
-    }, [isConnected]);
-    
-    
 
+    
     useEffect(() => {
         const fetchStakeInfo = async () => {
             if (web3 && contract && address) {
@@ -176,7 +167,10 @@ function Staking() {
                         const stakedInfo = await contract.methods.userStakeInfos(address, token.address).call();
                         return {
                             name: token.name,
-                            amount: Number(web3.utils.fromWei(stakedInfo.stakedAmount, "ether"))
+                            amount: Number(web3.utils.fromWei(stakedInfo.stakedAmount, "ether")),
+                            rewards: Number(web3.utils.fromWei(stakedInfo.rewards, "ether")),
+                            stakeEnd: stakedInfo.stakeEnd,
+                            stakedAt: stakedInfo.stakedAt,
                         };
                     });
     
@@ -185,9 +179,25 @@ function Staking() {
                         acc[curr.name] = curr.amount;
                         return acc;
                     }, {});
+                    const newStakeRewards = results.reduce<{ [key: string]: number }>((acc, curr) => {
+                        acc[curr.name] = curr.rewards;
+                        return acc;
+                    }, {});
+                    const newStakeEnd = results.reduce<{ [key: string]: number }>((acc, curr) => {
+                        acc[curr.name] = curr.stakeEnd;
+                        return acc;
+                    }, {});
+                    const newStakedOn = results.reduce<{ [key: string]: number }>((acc, curr) => {
+                        acc[curr.name] = curr.stakedAt;
+                        return acc;
+                    }, {});
+
+                    setStakedAmount(newStakedAmount);
+                    setStakeRewards(newStakeRewards);
+                    setStakeEnd(newStakeEnd);
+                    setStakedOn(newStakedOn);
     
                     console.log("Staked info fetched:", newStakedAmount);
-                    setStakedAmount(prev => ({ ...prev, ...newStakedAmount }));
                 } catch (error) {
                     console.error("Error fetching staking information:", error);
                 }
@@ -201,6 +211,32 @@ function Staking() {
         }
     }, [web3, contract, address, isConnected]);
     
+
+
+    useEffect(() => {
+        if (window.ethereum) {
+            const web3Instance = new Web3(window.ethereum);
+            setWeb3(web3Instance);
+    
+            // Explicitly declare accounts type as string[]
+            const handleAccountsChanged = (accounts: string[]) => {
+                if (accounts.length > 0) {
+                    setWeb3(new Web3(window.ethereum));
+                    // This will automatically trigger the useEffect hook to fetch the new balance
+                } else {
+                    setUsdtWalletBalance("Not connected");
+                }
+            };
+    
+            window.ethereum.on('accountsChanged', handleAccountsChanged);
+    
+            return () => {
+                window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
+            };
+        }
+    }, []);
+    
+
 
 
     const handleStakeUSDT = async () => {
@@ -542,38 +578,62 @@ function Staking() {
                 <div className="flex flex-wrap w-full lg:w-[47%] relative mt-10">
                     <img src={mystake} className="absolute w-full h-full" alt="" />
                     <div className="p-2 m-2 md:m-10 w-full relative z-10 md:p-0 md:justify-between">
-                        <div className="my-autow-full md:w-[35%] ">
-                            <div className="flex items-center">
+                        <div className="my-auto w-full md:w-[35%]">
+                            <div className="flex items-center mb-4">
                                 <img src={usdt} alt="" className="w-14 h-14 mr-4" />
                                 <p className="text-[35px] md:text-[30px] font-bold flex">USDT</p>
                             </div>
                         </div>
-                        <div className="flex mt-10 justify-between">
-                            <div className="w-1/2">
+                        <div className="flex flex-col mt-4 space-y-4">
+                            <div className="flex justify-between">
                                 <p>{t('total')}</p>
-                                <p className="flex">
-                                    <span className="text-[25px] md:text-[40px]">
-                                        {stakedAmount.USDT !== null ? stakedAmount.USDT.toFixed(2) : 'Loading...'}
-                                    </span>
-                                    <span className="text-[13px] mt-3 ml-2 md:mt-6 md:ml-4">
-                                        {stakedAmount.USDT !== null ? `USDT~$${stakedAmount.USDT.toFixed(2)}` : ''}
-                                    </span>
+                                <p className="text-[25px] md:text-[30px]">
+                                    {stakedAmount.USDT !== null ? stakedAmount.USDT.toFixed(2) : 'Loading...'}
                                 </p>
                             </div>
-                            <div className="w-1/2">
-                                <p>Available in Wallet</p>
-                                <p className="flex">
-                                    <span className="text-[25px] md:text-[40px]">
+                            <div className="flex justify-between">
+                                <p>{t('available')}</p>
+                                <div className="flex items-center">
+                                    <p className="text-[25px] md:text-[30px]">
                                         {usdtWalletBalance !== null ? parseFloat(usdtWalletBalance).toFixed(2) : 'Loading...'}
-                                    </span>
-                                    <span className="text-[13px] mt-3 ml-2 md:mt-6 md:ml-4">
+                                    </p>
+                                    <span className="text-[13px] ml-2 md:ml-4">
                                         {usdtWalletBalance !== null ? `USDT~$${parseFloat(usdtWalletBalance).toFixed(5)}` : ''}
                                     </span>
+                                </div>
+                            </div>
+                            <div className="flex justify-between">
+                                <p>Staked On:</p>
+                                <p className="text-[25px] md:text-[30px]">
+                                    {stakedOn.USDT ? new Date(stakedOn.USDT * 1000).toLocaleString() : 'Loading...'}
                                 </p>
+                            </div>
+                            <div className="flex justify-between">
+                                <p>Unlock On:</p>
+                                <p className="text-[25px] md:text-[30px]">
+                                    {stakeEnd.USDT ? new Date(stakeEnd.USDT * 1000).toLocaleString() : 'Loading...'}
+                                </p>
+                            </div>
+                            <div className="flex justify-between">
+                                <p>Current Rewards:</p>
+                                <p className="text-[25px] md:text-[30px]">
+                                    {stakeRewards.USDT !== null ? `${stakeRewards.USDT.toFixed(2)} USDT` : 'Loading...'}
+                                </p>
+                            </div>
+                            <div className="flex justify-between mt-4">
+                                <button
+                                    onClick={() => handleUnstake(usdtAddress)}
+                                    disabled={stakeEnd.USDT === null || Date.now() / 1000 < stakeEnd.USDT}
+                                    className={`bg-blue-500 text-white p-2 rounded-md ${stakeEnd.USDT === null || Date.now() / 1000 < stakeEnd.USDT ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                                >
+                                    Unlock
+                                </button>
                             </div>
                         </div>
                     </div>
                 </div>
+
+
 
                 {/* BTC Section */}
                 <div className="flex flex-wrap w-full lg:w-[47%] relative mt-10">
