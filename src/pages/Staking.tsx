@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import Web3 from "web3";
 import { useAccount } from "wagmi"; // Import to use wallet info
@@ -63,6 +63,9 @@ function Staking() {
     const [sliderValueeth, setSliderValueeth] = useState<number>(0);
 
     const [usdtWalletBalance, setUsdtWalletBalance] = useState<string | null>(null);
+    const [testMode, setTestMode] = useState<boolean>(false);
+
+    const pollingInterval = useRef<ReturnType<typeof setInterval> | null>(null);
 
     
 
@@ -90,6 +93,20 @@ function Staking() {
         ETH: null,
     });
 
+    useEffect(() => {
+        const fetchTestMode = async () => {
+            if (contract) {
+                try {
+                    const mode = await contract.methods.testMode().call();
+                    setTestMode(mode);
+                } catch (error) {
+                    console.error("Error fetching test mode status:", error);
+                }
+            }
+        };
+        fetchTestMode();
+    }, [contract]);
+    
 
     useEffect(() => {
         if (isConnected && window.ethereum) {
@@ -162,8 +179,8 @@ function Staking() {
                         { address: wbtcAddress, name: "BTC" },
                         { address: wethAddress, name: "ETH" }
                     ];
-                    
-                    const promises = tokens.map(async token => {
+    
+                    const promises = tokens.map(async (token) => {
                         const stakedInfo = await contract.methods.userStakeInfos(address, token.address).call();
                         return {
                             name: token.name,
@@ -191,7 +208,7 @@ function Staking() {
                         acc[curr.name] = curr.stakedAt;
                         return acc;
                     }, {});
-
+    
                     setStakedAmount(newStakedAmount);
                     setStakeRewards(newStakeRewards);
                     setStakeEnd(newStakeEnd);
@@ -208,8 +225,20 @@ function Staking() {
     
         if (isConnected) {
             fetchStakeInfo();
+
+            // Set interval to fetch data repeatedly
+            pollingInterval.current = setInterval(fetchStakeInfo, 1000); // Fetch every 5 seconds
+
+            // Cleanup function to clear interval
+            return () => {
+                if (pollingInterval.current) {
+                    clearInterval(pollingInterval.current);
+                }
+            };
         }
     }, [web3, contract, address, isConnected]);
+
+    
     
 
 
@@ -621,13 +650,19 @@ function Staking() {
                                 </p>
                             </div>
                             <div className="flex justify-between mt-4">
-                                <button
-                                    onClick={() => handleUnstake(usdtAddress)}
-                                    disabled={stakeEnd.USDT === null || Date.now() / 1000 < stakeEnd.USDT}
-                                    className={`bg-blue-500 text-white p-2 rounded-md ${stakeEnd.USDT === null || Date.now() / 1000 < stakeEnd.USDT ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-                                >
-                                    Unlock
-                                </button>
+                            <button
+                                onClick={() => handleUnstake(usdtAddress)}
+                                disabled={!testMode && (stakeEnd.USDT === null || Date.now() / 1000 < stakeEnd.USDT)}
+                                className={`bg-blue-500 text-white p-2 rounded-md ${!testMode && (stakeEnd.USDT === null || Date.now() / 1000 < stakeEnd.USDT) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                            >
+                                Unlock
+                            </button>
+                            {(!testMode && stakeEnd.USDT && Date.now() / 1000 < stakeEnd.USDT) && (
+                                <p className="text-sm text-gray-400">
+                                    Unlock available on: {new Date(stakeEnd.USDT * 1000).toLocaleString()}
+                                </p>
+                            )}
+
                             </div>
                         </div>
                     </div>
