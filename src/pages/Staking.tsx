@@ -67,6 +67,7 @@ function Staking() {
 
     const pollingInterval = useRef<ReturnType<typeof setInterval> | null>(null);
 
+    const [hasStakes, setHasStakes] = useState(false); // State to track if the user has any active stakes
     
 
     const { isConnected, address } = useAccount(); // To get wallet address and connection status
@@ -167,77 +168,123 @@ function Staking() {
         }
     }, [web3, address, isConnected]);
 
-
+    useEffect(() => {
+        console.log("hasStakes state updated:", hasStakes);
+    }, [hasStakes]);
+    
     
     useEffect(() => {
+        console.log("hasStakes state updated:", hasStakes);
+    }, [hasStakes]);
         const fetchStakeInfo = async () => {
             if (web3 && contract && address) {
                 try {
-                    console.log("Fetching staked info for all tokens...");
+                    console.log("Attempting to fetch staking information...");
+    
                     const tokens = [
                         { address: usdtAddress, name: "USDT" },
                         { address: wbtcAddress, name: "BTC" },
                         { address: wethAddress, name: "ETH" }
                     ];
     
+                    let hasActiveStakes = false;
+    
                     const promises = tokens.map(async (token) => {
+                        console.log(`Fetching data for token: ${token.name}`);
                         const stakedInfo = await contract.methods.userStakeInfos(address, token.address).call();
+                        console.log(`Staked info for ${token.name}:`, stakedInfo);
+    
+                        const stakedAmount = stakedInfo.stakedAmount ? web3.utils.fromWei(stakedInfo.stakedAmount, "ether") : "0";
+                        const rewards = stakedInfo.rewards ? web3.utils.fromWei(stakedInfo.rewards, "ether") : "0";
+    
+                        const amount = Number(stakedAmount);
+                        console.log(`Amount staked for ${token.name}:`, amount);
+    
+                        if (amount > 0) {
+                            hasActiveStakes = true; // If any token has a staked amount, set to true
+                        }
+    
                         return {
                             name: token.name,
-                            amount: Number(web3.utils.fromWei(stakedInfo.stakedAmount, "ether")),
-                            rewards: Number(web3.utils.fromWei(stakedInfo.rewards, "ether")),
-                            stakeEnd: stakedInfo.stakeEnd,
-                            stakedAt: stakedInfo.stakedAt,
+                            amount,
+                            rewards: Number(rewards),
+                            stakeEnd: stakedInfo.stakeEnd ? Number(stakedInfo.stakeEnd) : null,
+                            stakedAt: stakedInfo.stakedAt ? Number(stakedInfo.stakedAt) : null,
                         };
                     });
     
                     const results = await Promise.all(promises);
-                    const newStakedAmount = results.reduce<{ [key: string]: number }>((acc, curr) => {
-                        acc[curr.name] = curr.amount;
-                        return acc;
-                    }, {});
-                    const newStakeRewards = results.reduce<{ [key: string]: number }>((acc, curr) => {
-                        acc[curr.name] = curr.rewards;
-                        return acc;
-                    }, {});
-                    const newStakeEnd = results.reduce<{ [key: string]: number }>((acc, curr) => {
-                        acc[curr.name] = curr.stakeEnd;
-                        return acc;
-                    }, {});
-                    const newStakedOn = results.reduce<{ [key: string]: number }>((acc, curr) => {
-                        acc[curr.name] = curr.stakedAt;
-                        return acc;
-                    }, {});
     
-                    setStakedAmount(newStakedAmount);
-                    setStakeRewards(newStakeRewards);
-                    setStakeEnd(newStakeEnd);
-                    setStakedOn(newStakedOn);
+                    // Log out the final results before updating state
+                    console.log("Final results from fetchStakeInfo:", results);
+                    console.log("Has active stakes after fetching:", hasActiveStakes);
     
-                    console.log("Staked info fetched:", newStakedAmount);
+                    // Update the state for hasStakes
+                    setHasStakes(hasActiveStakes);
+    
+                    // Process results and update state
+                    const stakedAmounts: { [key: string]: number } = {};
+                    const stakeRewards: { [key: string]: number } = {};
+                    const stakeEnds: { [key: string]: number | null } = {};
+                    const stakedOns: { [key: string]: number | null } = {};
+    
+                    results.forEach((token) => {
+                        stakedAmounts[token.name] = token.amount;
+                        stakeRewards[token.name] = token.rewards;
+                        stakeEnds[token.name] = token.stakeEnd;
+                        stakedOns[token.name] = token.stakedAt;
+                    });
+    
+                    setStakedAmount(stakedAmounts);
+                    setStakeRewards(stakeRewards);
+                    setStakeEnd(stakeEnds);
+                    setStakedOn(stakedOns);
+    
+                    console.log("Successfully fetched staking information");
                 } catch (error) {
                     console.error("Error fetching staking information:", error);
+                    Swal.fire({
+                        title: 'Data Fetch Error',
+                        text: 'Unable to retrieve staking information. Please try again later.',
+                        icon: 'error',
+                        confirmButtonText: 'OK'
+                    });
                 }
             } else {
                 console.warn("Missing web3, contract, or address");
             }
         };
     
-        if (isConnected) {
-            fetchStakeInfo();
+        // Effect to fetch staking information periodically
+        useEffect(() => {
+            if (isConnected && web3 && contract && address) {
+                console.log("All dependencies are ready, fetching stake info...");
+                fetchStakeInfo();
+    
+                // Set interval to fetch data repeatedly
+                pollingInterval.current = setInterval(fetchStakeInfo, 5000); // Fetch every 10 seconds
+    
+                // Cleanup function to clear interval
+                return () => {
+                    if (pollingInterval.current) {
+                        clearInterval(pollingInterval.current);
+                    }
+                };
+            } else {
+                console.warn("web3, contract, or address is not ready yet.");
+            }
+        }, [web3, contract, address, isConnected]);
+    
+        
 
-            // Set interval to fetch data repeatedly
-            pollingInterval.current = setInterval(fetchStakeInfo, 1000); // Fetch every 5 seconds
-
-            // Cleanup function to clear interval
-            return () => {
-                if (pollingInterval.current) {
-                    clearInterval(pollingInterval.current);
-                }
-            };
+    // Function to scroll to the staking section
+    const scrollToStakingSection = () => {
+        const stakingSection = document.getElementById('staking-section'); // Assume you have a wrapper element with this ID
+        if (stakingSection) {
+            stakingSection.scrollIntoView({ behavior: 'smooth' });
         }
-    }, [web3, contract, address, isConnected]);
-
+    };
+    
     
     
 
@@ -302,35 +349,58 @@ function Staking() {
                 return;
             }
     
-            // Convert input value to Wei (since blockchain uses Wei for transactions)
+            // Convert input value to Wei
             const amountToStake = web3.utils.toWei(inputValueusdt, "ether");
     
-            // Determine duration in months
+            // Step 1: Check allowance
+            const usdtContract = new web3.eth.Contract(usdtABI, usdtAddress);
+            const allowance = await usdtContract.methods.allowance(address, contractAddress).call();
+    
+            if (Number(allowance) < Number(amountToStake)) {
+                // Approve the staking contract to transfer tokens on behalf of the user
+                await usdtContract.methods
+                    .approve(contractAddress, web3.utils.toWei('1000000', 'ether')) // Approving a large amount
+                    .send({ from: address })
+                    .on('transactionHash', (hash) => {
+                        Swal.fire({
+                            title: 'Approval in Progress',
+                            text: `Transaction Hash: ${hash}`,
+                            icon: 'info',
+                            confirmButtonText: 'OK'
+                        });
+                    });
+            }
+    
+            // Step 2: Stake the tokens after approval (or if already approved)
             const durationInMonths = usdtduration === '30 Days' ? 1 : usdtduration === '6 Months' ? 6 : 12;
+            const gasLimit = 200000; // Set a reasonable gas limit
+            const gasPrice = web3.utils.toWei('6', 'gwei'); // Set gas price
     
-            // Call the stake function of the smart contract
             await contract.methods.stake(usdtAddress, durationInMonths, amountToStake)
-                .send({ from: address });
+                .send({ from: address, gas: gasLimit, gasPrice: gasPrice })
+                .on('receipt', async () => {
+                    Swal.fire({
+                        title: 'Success!',
+                        text: 'Staked successfully!',
+                        icon: 'success',
+                        confirmButtonText: 'OK'
+                    });
     
-            Swal.fire({
-                title: 'Success!',
-                text: 'Staked successfully!',
-                icon: 'success',
-                confirmButtonText: 'OK'
-            });
+                    // Step 4: Clear input fields and update UI
+                    // Clear input fields and update UI
+                    setInputValueusdt('');
+                    setSliderValueusdt(0);
+                    setUsdtDuration('');
+
+                    // Fetch updated staking information
+                    await fetchStakeInfo();
+
+                });
     
         } catch (error: any) {
             console.error("Staking error:", error);
-            
-            // Check if the error message includes "Already staked"
-            if (error.message && error.message.includes("Already staked")) {
-                Swal.fire({
-                    title: 'Staking Error',
-                    text: 'You have already staked your tokens. Please unstake or wait until your current staking period ends.',
-                    icon: 'error',
-                    confirmButtonText: 'OK'
-                });
-            } else if (error.message && error.message.includes("User denied transaction")) {
+    
+            if (error.message.includes("User denied transaction")) {
                 Swal.fire({
                     title: 'Transaction Denied',
                     text: 'Transaction was denied by the user.',
@@ -347,6 +417,7 @@ function Staking() {
             }
         }
     };
+    
 
 
     const handleUnstake = async (tokenAddress: string) => {
@@ -361,8 +432,13 @@ function Staking() {
         }
     
         try {
-            // Call the unstake function of the smart contract
-            await contract.methods.unstake(tokenAddress).send({ from: address });
+            // Define gas parameters
+            const gasLimit = 200000; // Set a reasonable gas limit
+            const gasPrice = web3.utils.toWei('20', 'gwei'); // Set the gas price to 20 Gwei
+
+            // Call the unstake function of the smart contract with gas settings
+            await contract.methods.unstake(tokenAddress).send({ from: address, gas: gasLimit, gasPrice: gasPrice });
+
     
             Swal.fire({
                 title: 'Success!',
@@ -449,8 +525,85 @@ function Staking() {
                     <h1 className="font-bold">{t('earn')}</h1>
                     <p className="mt-4 text-[15px] md:text-[25px]">{t('Join')}</p>
                 </div>
+                
             </div>
-            <div className="flex justify-between w-full">
+            {/* Conditionally Render No Stakes or Staking Details */}
+                {!hasStakes ? (
+                    <div className="w-full lg:w-[47%] flex flex-col items-center justify-center bg-black rounded-lg p-8">
+                        <h2 className="text-white text-3xl font-bold mb-4">YOUR PLAN</h2>
+                        <p className="text-white mb-4">NO STAKES YET</p>
+                        <p className="text-white mb-4">
+                            You don't have any stakes yet. Start your journey as a whale and make your first stake.
+                        </p>
+                        <button
+                            onClick={scrollToStakingSection}
+                            className="bg-blue-500 text-white p-3 rounded-md mt-4"
+                        >
+                            GET STARTED
+                        </button>
+                    </div>
+                ) : (
+                    <div className="flex flex-wrap w-full lg:w-[47%] relative mt-10">
+                        {/* Rest of the component showing staking details */}
+                        <p>Your current stake:</p>
+                        {/* Display staked amount here */}
+                        <img src={mystake} className="absolute w-full h-full" alt="" />
+                        <div className="p-2 m-2 md:m-10 w-full relative z-10 md:p-0 md:justify-between">
+                            <div className="my-auto w-full md:w-[35%]">
+                                <div className="flex items-center mb-4">
+                                    <img src={usdt} alt="" className="w-14 h-14 mr-4" />
+                                    <p className="text-[35px] md:text-[30px] font-bold flex">USDT</p>
+                                </div>
+                            </div>
+                            <div className="flex flex-col mt-4 space-y-4">
+                                <div className="flex justify-between">
+                                    <p>{t('total')}</p>
+                                    <p className="text-[25px] md:text-[30px]">
+                                        {stakedAmount.USDT !== null ? stakedAmount.USDT.toFixed(2) : 'Loading...'}
+                                    </p>
+                                </div>
+                                <div className="flex justify-between">
+                                    <p>{t('available')}</p>
+                                    <p className="text-[25px] md:text-[30px]">
+                                        {usdtWalletBalance && !isNaN(parseFloat(usdtWalletBalance))
+                                            ? parseFloat(usdtWalletBalance).toFixed(2)
+                                            : 'Loading...'}
+                                    </p>
+                                </div>
+                                <div className="flex justify-between">
+                                    <p>Staked On:</p>
+                                    <p className="text-[25px] md:text-[30px] loader">
+                                        {stakedOn.USDT ? new Date(stakedOn.USDT * 1000).toLocaleString() : 'Loading...'}
+                                    </p>
+                                </div>
+                                <div className="flex justify-between">
+                                    <p>Unlock On:</p>
+                                    <p className="text-[25px] md:text-[30px] loader">
+                                        {stakeEnd.USDT ? new Date(stakeEnd.USDT * 1000).toLocaleString() : 'Loading...'}
+                                    </p>
+                                </div>
+                                <div className="flex justify-between">
+                                    <p>Current Rewards:</p>
+                                    <p className="text-[25px] md:text-[30px] loader">
+                                        {stakeRewards.USDT !== null && !isNaN(stakeRewards.USDT)
+                                            ? `${stakeRewards.USDT.toFixed(2)} USDT`
+                                            : 'Loading...'}
+                                    </p>
+                                </div>
+                                <div className="flex justify-between mt-4">
+                                    <button
+                                        className="bg-blue-500 text-white p-2 rounded-md"
+                                    >
+                                        Unlock
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+
+            <div className="flex justify-between w-full" id="staking-section">
                 <h1 className="flex md:text-[60px] text-[30px] font-bold">{t('trading')}</h1>
                 <p className="md:text-[20px] text-[13px] items-end flex">{t('risk')}</p>
             </div>
@@ -603,70 +756,78 @@ function Staking() {
                 <p className="md:text-[20px] text-[13px] items-end flex">{t('risk')}</p>
             </div>
             <div className="flex flex-wrap justify-center w-full gap-7">
-                {/* My Staking Section for USDT */}
-                <div className="flex flex-wrap w-full lg:w-[47%] relative mt-10">
-                    <img src={mystake} className="absolute w-full h-full" alt="" />
-                    <div className="p-2 m-2 md:m-10 w-full relative z-10 md:p-0 md:justify-between">
-                        <div className="my-auto w-full md:w-[35%]">
-                            <div className="flex items-center mb-4">
-                                <img src={usdt} alt="" className="w-14 h-14 mr-4" />
-                                <p className="text-[35px] md:text-[30px] font-bold flex">USDT</p>
-                            </div>
-                        </div>
-                        <div className="flex flex-col mt-4 space-y-4">
-                            <div className="flex justify-between">
-                                <p>{t('total')}</p>
-                                <p className="text-[25px] md:text-[30px]">
-                                    {stakedAmount.USDT !== null ? stakedAmount.USDT.toFixed(2) : 'Loading...'}
-                                </p>
-                            </div>
-                            <div className="flex justify-between">
-                                <p>{t('available')}</p>
-                                <div className="flex items-center">
-                                    <p className="text-[25px] md:text-[30px]">
-                                        {usdtWalletBalance !== null ? parseFloat(usdtWalletBalance).toFixed(2) : 'Loading...'}
-                                    </p>
-                                    <span className="text-[13px] ml-2 md:ml-4">
-                                        {usdtWalletBalance !== null ? `USDT~$${parseFloat(usdtWalletBalance).toFixed(5)}` : ''}
-                                    </span>
+                {/* Conditionally Render No Stakes or Staking Details */}
+                {!hasStakes ? (
+                    <div className="w-full lg:w-[47%] flex flex-col items-center justify-center bg-black rounded-lg p-8">
+                        <h2 className="text-white text-3xl font-bold mb-4">YOUR PLAN</h2>
+                        <p className="text-white mb-4">NO STAKES YET</p>
+                        <p className="text-white mb-4">
+                            You don't have any stakes yet. Start your journey as a whale and make your first stake.
+                        </p>
+                        <button
+                            onClick={scrollToStakingSection}
+                            className="bg-blue-500 text-white p-3 rounded-md mt-4"
+                        >
+                            GET STARTED
+                        </button>
+                    </div>
+                ) : (
+                    <div className="flex flex-wrap w-full lg:w-[47%] relative mt-10">
+                        <img src={mystake} className="absolute w-full h-full" alt="" />
+                        <div className="p-2 m-2 md:m-10 w-full relative z-10 md:p-0 md:justify-between">
+                            <div className="my-auto w-full md:w-[35%]">
+                                <div className="flex items-center mb-4">
+                                    <img src={usdt} alt="" className="w-14 h-14 mr-4" />
+                                    <p className="text-[35px] md:text-[30px] font-bold flex">USDT</p>
                                 </div>
                             </div>
-                            <div className="flex justify-between">
-                                <p>Staked On:</p>
-                                <p className="text-[25px] md:text-[30px]">
-                                    {stakedOn.USDT ? new Date(stakedOn.USDT * 1000).toLocaleString() : 'Loading...'}
-                                </p>
-                            </div>
-                            <div className="flex justify-between">
-                                <p>Unlock On:</p>
-                                <p className="text-[25px] md:text-[30px]">
-                                    {stakeEnd.USDT ? new Date(stakeEnd.USDT * 1000).toLocaleString() : 'Loading...'}
-                                </p>
-                            </div>
-                            <div className="flex justify-between">
-                                <p>Current Rewards:</p>
-                                <p className="text-[25px] md:text-[30px]">
-                                    {stakeRewards.USDT !== null ? `${stakeRewards.USDT.toFixed(2)} USDT` : 'Loading...'}
-                                </p>
-                            </div>
-                            <div className="flex justify-between mt-4">
-                            <button
-                                onClick={() => handleUnstake(usdtAddress)}
-                                disabled={!testMode && (stakeEnd.USDT === null || Date.now() / 1000 < stakeEnd.USDT)}
-                                className={`bg-blue-500 text-white p-2 rounded-md ${!testMode && (stakeEnd.USDT === null || Date.now() / 1000 < stakeEnd.USDT) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-                            >
-                                Unlock
-                            </button>
-                            {(!testMode && stakeEnd.USDT && Date.now() / 1000 < stakeEnd.USDT) && (
-                                <p className="text-sm text-gray-400">
-                                    Unlock available on: {new Date(stakeEnd.USDT * 1000).toLocaleString()}
-                                </p>
-                            )}
-
+                            <div className="flex flex-col mt-4 space-y-4">
+                                <div className="flex justify-between">
+                                    <p>{t('total')}</p>
+                                    <p className="text-[25px] md:text-[30px]">
+                                        {stakedAmount.USDT !== null ? stakedAmount.USDT.toFixed(2) : 'Loading...'}
+                                    </p>
+                                </div>
+                                <div className="flex justify-between">
+                                    <p>{t('available')}</p>
+                                    <p className="text-[25px] md:text-[30px]">
+                                        {usdtWalletBalance && !isNaN(parseFloat(usdtWalletBalance))
+                                            ? parseFloat(usdtWalletBalance).toFixed(2)
+                                            : 'Loading...'}
+                                    </p>
+                                </div>
+                                <div className="flex justify-between">
+                                    <p>Staked On:</p>
+                                    <p className="text-[25px] md:text-[30px] loader">
+                                        {stakedOn.USDT ? new Date(stakedOn.USDT * 1000).toLocaleString() : 'Loading...'}
+                                    </p>
+                                </div>
+                                <div className="flex justify-between">
+                                    <p>Unlock On:</p>
+                                    <p className="text-[25px] md:text-[30px] loader">
+                                        {stakeEnd.USDT ? new Date(stakeEnd.USDT * 1000).toLocaleString() : 'Loading...'}
+                                    </p>
+                                </div>
+                                <div className="flex justify-between">
+                                    <p>Current Rewards:</p>
+                                    <p className="text-[25px] md:text-[30px] loader">
+                                        {stakeRewards.USDT !== null && !isNaN(stakeRewards.USDT)
+                                            ? `${stakeRewards.USDT.toFixed(2)} USDT`
+                                            : 'Loading...'}
+                                    </p>
+                                </div>
+                                <div className="flex justify-between mt-4">
+                                    <button
+                                        className="bg-blue-500 text-white p-2 rounded-md"
+                                    >
+                                        Unlock
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
+                )}
+
 
 
 
