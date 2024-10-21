@@ -68,6 +68,9 @@ function Staking() {
     const pollingInterval = useRef<ReturnType<typeof setInterval> | null>(null);
 
     const [hasStakes, setHasStakes] = useState(false); // State to track if the user has any active stakes
+
+    const [loading, setLoading] = useState(true); // To manage loading state for the stake info
+
     
 
     const { isConnected, address } = useAccount(); // To get wallet address and connection status
@@ -94,6 +97,44 @@ function Staking() {
         ETH: null,
     });
 
+
+    useEffect(() => {
+        const initializeWeb3AndContract = async () => {
+            if (isConnected && window.ethereum) {
+                try {
+                    const _web3 = new Web3(window.ethereum);
+                    setWeb3(_web3);
+                    const _contract = new _web3.eth.Contract(contractABI, contractAddress);
+                    setContract(_contract);
+                    
+                    // Fetch stake information after initializing web3 and contract
+                    await fetchStakeInfo(_web3, _contract);
+                    
+                    // Show SweetAlert2 toast notification for wallet connection success
+                    Swal.fire({
+                        toast: true,
+                        position: 'top-end',
+                        icon: 'success',
+                        title: 'Wallet connected successfully!',
+                        showConfirmButton: false,
+                        timer: 3000,
+                        timerProgressBar: true
+                    });
+                } catch (error) {
+                    console.error("Error initializing Web3 or contract:", error);
+                }
+            } else {
+                // Reset state when wallet is disconnected
+                setWeb3(null);
+                setContract(null);
+                setHasStakes(false);
+                setLoading(false); // Stop loading if wallet is disconnected
+            }
+        };
+
+        initializeWeb3AndContract();
+    }, [isConnected, address]);
+
     useEffect(() => {
         const fetchTestMode = async () => {
             if (contract) {
@@ -109,25 +150,7 @@ function Staking() {
     }, [contract]);
     
 
-    useEffect(() => {
-        if (isConnected && window.ethereum) {
-            const _web3 = new Web3(window.ethereum);
-            setWeb3(_web3);
-            const _contract = new _web3.eth.Contract(contractABI, contractAddress);
-            setContract(_contract);
-            
-            // Show SweetAlert2 toast notification for wallet connection success
-            Swal.fire({
-                toast: true,
-                position: 'top-end',
-                icon: 'success',
-                title: 'Wallet connected successfully!',
-                showConfirmButton: false,
-                timer: 3000,
-                timerProgressBar: true
-            });
-        }
-    }, [isConnected]);
+    
     
 
     // Fetch wallet balance function to be called in useEffect
@@ -173,107 +196,104 @@ function Staking() {
     }, [hasStakes]);
     
     
-    useEffect(() => {
-        console.log("hasStakes state updated:", hasStakes);
-    }, [hasStakes]);
-        const fetchStakeInfo = async () => {
-            if (web3 && contract && address) {
-                try {
-                    console.log("Attempting to fetch staking information...");
-    
-                    const tokens = [
-                        { address: usdtAddress, name: "USDT" },
-                        { address: wbtcAddress, name: "BTC" },
-                        { address: wethAddress, name: "ETH" }
-                    ];
-    
-                    let hasActiveStakes = false;
-    
-                    const promises = tokens.map(async (token) => {
-                        console.log(`Fetching data for token: ${token.name}`);
-                        const stakedInfo = await contract.methods.userStakeInfos(address, token.address).call();
-                        console.log(`Staked info for ${token.name}:`, stakedInfo);
-    
-                        const stakedAmount = stakedInfo.stakedAmount ? web3.utils.fromWei(stakedInfo.stakedAmount, "ether") : "0";
-                        const rewards = stakedInfo.rewards ? web3.utils.fromWei(stakedInfo.rewards, "ether") : "0";
-    
-                        const amount = Number(stakedAmount);
-                        console.log(`Amount staked for ${token.name}:`, amount);
-    
-                        if (amount > 0) {
-                            hasActiveStakes = true; // If any token has a staked amount, set to true
-                        }
-    
-                        return {
-                            name: token.name,
-                            amount,
-                            rewards: Number(rewards),
-                            stakeEnd: stakedInfo.stakeEnd ? Number(stakedInfo.stakeEnd) : null,
-                            stakedAt: stakedInfo.stakedAt ? Number(stakedInfo.stakedAt) : null,
-                        };
-                    });
-    
-                    const results = await Promise.all(promises);
-    
-                    // Log out the final results before updating state
-                    console.log("Final results from fetchStakeInfo:", results);
-                    console.log("Has active stakes after fetching:", hasActiveStakes);
-    
-                    // Update the state for hasStakes
-                    setHasStakes(hasActiveStakes);
-    
-                    // Process results and update state
-                    const stakedAmounts: { [key: string]: number } = {};
-                    const stakeRewards: { [key: string]: number } = {};
-                    const stakeEnds: { [key: string]: number | null } = {};
-                    const stakedOns: { [key: string]: number | null } = {};
-    
-                    results.forEach((token) => {
-                        stakedAmounts[token.name] = token.amount;
-                        stakeRewards[token.name] = token.rewards;
-                        stakeEnds[token.name] = token.stakeEnd;
-                        stakedOns[token.name] = token.stakedAt;
-                    });
-    
-                    setStakedAmount(stakedAmounts);
-                    setStakeRewards(stakeRewards);
-                    setStakeEnd(stakeEnds);
-                    setStakedOn(stakedOns);
-    
-                    console.log("Successfully fetched staking information");
-                } catch (error) {
-                    console.error("Error fetching staking information:", error);
-                    Swal.fire({
-                        title: 'Data Fetch Error',
-                        text: 'Unable to retrieve staking information. Please try again later.',
-                        icon: 'error',
-                        confirmButtonText: 'OK'
-                    });
-                }
-            } else {
-                console.warn("Missing web3, contract, or address");
-            }
-        };
-    
-        // Effect to fetch staking information periodically
-        useEffect(() => {
-            if (isConnected && web3 && contract && address) {
-                console.log("All dependencies are ready, fetching stake info...");
-                fetchStakeInfo();
-    
-                // Set interval to fetch data repeatedly
-                pollingInterval.current = setInterval(fetchStakeInfo, 5000); // Fetch every 10 seconds
-    
-                // Cleanup function to clear interval
-                return () => {
-                    if (pollingInterval.current) {
-                        clearInterval(pollingInterval.current);
+    // Function to fetch staking information
+    const fetchStakeInfo = async (_web3: Web3, _contract: any) => {
+        if (_web3 && _contract && address) {
+            try {
+                console.log("Attempting to fetch staking information...");
+                setLoading(true); // Start loading while fetching
+
+                const tokens = [
+                    { address: usdtAddress, name: "USDT" },
+                    { address: wbtcAddress, name: "BTC" },
+                    { address: wethAddress, name: "ETH" }
+                ];
+
+                let hasActiveStakes = false;
+
+                const promises = tokens.map(async (token) => {
+                    console.log(`Fetching data for token: ${token.name}`);
+                    const stakedInfo = await contract.methods.userStakeInfos(address, token.address).call();
+                    console.log(`Staked info for ${token.name}:`, stakedInfo);
+
+                    const stakedAmount = stakedInfo.stakedAmount ? _web3.utils.fromWei(stakedInfo.stakedAmount, "ether") : "0";
+                    const rewards = stakedInfo.rewards ? _web3.utils.fromWei(stakedInfo.rewards, "ether") : "0";
+
+                    const amount = Number(stakedAmount);
+                    console.log(`Amount staked for ${token.name}:`, amount);
+
+                    if (amount > 0) {
+                        hasActiveStakes = true; // If any token has a staked amount, set to true
                     }
-                };
-            } else {
-                console.warn("web3, contract, or address is not ready yet.");
+
+                    return {
+                        name: token.name,
+                        amount,
+                        rewards: Number(rewards),
+                        stakeEnd: stakedInfo.stakeEnd ? Number(stakedInfo.stakeEnd) : null,
+                        stakedAt: stakedInfo.stakedAt ? Number(stakedInfo.stakedAt) : null,
+                    };
+                });
+
+                const results = await Promise.all(promises);
+
+                // Log out the final results before updating state
+                console.log("Final results from fetchStakeInfo:", results);
+                console.log("Has active stakes after fetching:", hasActiveStakes);
+
+                
+                // Process results and update state
+                const stakedAmounts: { [key: string]: number } = {};
+                const stakeRewards: { [key: string]: number } = {};
+                const stakeEnds: { [key: string]: number | null } = {};
+                const stakedOns: { [key: string]: number | null } = {};
+
+                results.forEach((token) => {
+                    stakedAmounts[token.name] = token.amount;
+                    stakeRewards[token.name] = token.rewards;
+                    stakeEnds[token.name] = token.stakeEnd;
+                    stakedOns[token.name] = token.stakedAt;
+                });
+
+                setStakedAmount(stakedAmounts);
+                setStakeRewards(stakeRewards);
+                setStakeEnd(stakeEnds);
+                setStakedOn(stakedOns);
+
+                setHasStakes(hasActiveStakes);
+
+                 // Save fetched stake information in session storage
+                 sessionStorage.setItem("stakeInfo", JSON.stringify({
+                    stakedAmount: stakedAmounts,
+                    hasStakes: hasActiveStakes
+                }));
+
+
+                console.log("Successfully fetched staking information");
+            } catch (error) {
+                console.error("Error fetching staking information:", error);
+                Swal.fire({
+                    title: 'Data Fetch Error',
+                    text: 'Unable to retrieve staking information. Please try again later.',
+                    icon: 'error',
+                    confirmButtonText: 'OK'
+                });
+            } finally {
+                setLoading(false); // Stop loading once data is fetched
             }
-        }, [web3, contract, address, isConnected]);
+        } else {
+            console.warn("Missing web3, contract, or address");
+        }
+    };
+
+    // Effect to fetch staking information when wallet connects
+    useEffect(() => {
+        if (isConnected && web3 && contract && address) {
+            console.log("All dependencies are ready, fetching stake info...");
+            fetchStakeInfo(web3, contract);
+        }
+    }, [web3, contract, address, isConnected]);
+    
     
         
 
@@ -393,7 +413,7 @@ function Staking() {
                     setUsdtDuration('');
 
                     // Fetch updated staking information
-                    await fetchStakeInfo();
+                    await fetchStakeInfo(web3, contract);
 
                 });
     
@@ -528,7 +548,7 @@ function Staking() {
                 
             </div>
             {/* Conditionally Render No Stakes or Staking Details */}
-                {!hasStakes ? (
+                {!isConnected || !hasStakes ? (
                     <div className="w-full lg:w-[47%] flex flex-col items-center justify-center bg-black rounded-lg p-8">
                         <h2 className="text-white text-3xl font-bold mb-4">YOUR PLAN</h2>
                         <p className="text-white mb-4">NO STAKES YET</p>
@@ -558,13 +578,13 @@ function Staking() {
                             <div className="flex flex-col mt-4 space-y-4">
                                 <div className="flex justify-between">
                                     <p>{t('total')}</p>
-                                    <p className="text-[25px] md:text-[30px]">
+                                    <p className="text-[25px] md:text-[20px]">
                                         {stakedAmount.USDT !== null ? stakedAmount.USDT.toFixed(2) : 'Loading...'}
                                     </p>
                                 </div>
                                 <div className="flex justify-between">
                                     <p>{t('available')}</p>
-                                    <p className="text-[25px] md:text-[30px]">
+                                    <p className="text-[25px] md:text-[20px]">
                                         {usdtWalletBalance && !isNaN(parseFloat(usdtWalletBalance))
                                             ? parseFloat(usdtWalletBalance).toFixed(2)
                                             : 'Loading...'}
@@ -572,19 +592,19 @@ function Staking() {
                                 </div>
                                 <div className="flex justify-between">
                                     <p>Staked On:</p>
-                                    <p className="text-[25px] md:text-[30px] loader">
+                                    <p className="text-[25px] md:text-[20px] loader">
                                         {stakedOn.USDT ? new Date(stakedOn.USDT * 1000).toLocaleString() : 'Loading...'}
                                     </p>
                                 </div>
                                 <div className="flex justify-between">
                                     <p>Unlock On:</p>
-                                    <p className="text-[25px] md:text-[30px] loader">
+                                    <p className="text-[25px] md:text-[20px] loader">
                                         {stakeEnd.USDT ? new Date(stakeEnd.USDT * 1000).toLocaleString() : 'Loading...'}
                                     </p>
                                 </div>
                                 <div className="flex justify-between">
                                     <p>Current Rewards:</p>
-                                    <p className="text-[25px] md:text-[30px] loader">
+                                    <p className="text-[25px] md:text-[20px] loader">
                                         {stakeRewards.USDT !== null && !isNaN(stakeRewards.USDT)
                                             ? `${stakeRewards.USDT.toFixed(2)} USDT`
                                             : 'Loading...'}
