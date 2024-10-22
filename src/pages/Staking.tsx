@@ -111,22 +111,30 @@ function Staking() {
         ETH: null,
     });
 
-    const calculateAPR = (duration: any) => {
-        if (duration <= 30) {
-            return 15; // 15% for 1 month
-        } else if (duration <= 180) {
-            return 24; // 24% for 6 months
-        } else if (duration <= 365) {
-            return 36; // 36% for 1 year
-        } else {
-            return 0; // Default or error case
+    // Function to calculate APR based on duration
+    const calculateAPR = (stakedOn: number | null, unlockIn: number | null) => {
+        if (stakedOn && unlockIn) {
+            const durationDays = Math.ceil((unlockIn - stakedOn) / (1000 * 60 * 60 * 24));
+
+            if (durationDays <= 30) {
+                return 15; // 15%
+            } else if (durationDays <= 180) {
+                return 24; // 24%
+            } else if (durationDays <= 365) {
+                return 36; // 36%
+            } else {
+                return 0; // Default case
+            }
         }
+        return 0; // Loading or not available case
     };
-    
+
+
+    // Updated apr calculation
     const apr = stakeEnd.USDT && stakedOn.USDT 
-        ? calculateAPR(Math.ceil((stakeEnd.USDT * 1000 - stakedOn.USDT * 1000) / (1000 * 60 * 60 * 24)))
+        ? calculateAPR(stakedOn.USDT, stakeEnd.USDT)
         : 0;
-    
+
 
     // Function to format BigInt values for ERC20 tokens with 18 decimals
     const formatBigInt = (value: any, decimals = 2) => {
@@ -146,6 +154,21 @@ function Staking() {
         return value.toString();
         }
     };
+    
+    const [selectedToken, setSelectedToken] = useState<string>('USDT');
+
+    const tokens = [
+        { name: 'USDT', icon: usdt },
+        { name: 'BTC', icon: btc },
+        { name: 'ETH', icon: eth },
+    ];
+
+    // Handle selecting a token
+    const handleSelectToken = (tokenName: string) => {
+        setSelectedToken(tokenName);
+    };
+      
+
 
     useEffect(() => {
         // Fetch USDT price from an API like CoinGecko
@@ -894,7 +917,7 @@ function Staking() {
                                 <div className="flex justify-between items-center">
                                   <p><FontAwesomeIcon icon={faPercentage} className="mr-2" />APR:</p>
                                   <p className="text-[25px] md:text-[30px] loader text-green-500" id="apr-tooltip">
-                                    ~{apr}% <i className="fas fa-info-circle ml-2"></i>
+                                    ~{apr} <i className="fas fa-info-circle ml-2"></i>
                                   </p>
                                   <ReactTooltip anchorId="apr-tooltip" place="top" content="This is the annual percentage rate (APR) which determines the yield for your staked tokens." />
                                 </div>
@@ -914,7 +937,7 @@ function Staking() {
                                                 <p>{`${formatBigInt(earnedRewards.USDT)} USDT`}</p>
                                                 {/* Calculate Earned Reward Percentage */}
                                                 <p className="text-sm text-right text-green-500">
-                                                    ~{Math.min((formatBigInt((earnedRewards.USDT / stakedAmount.USDT) * 100)), apr)}% Earned
+                                                    ~{Math.min((earnedRewards.USDT / stakedAmount.USDT) * 100, apr).toFixed(2)}% Earned
                                                 </p>
                                             </>
                                         ) : (
@@ -922,6 +945,8 @@ function Staking() {
                                         )}
                                     </div>
                                 </div>
+
+
                                 
 
                                 <div className="flex justify-between mt-4">
@@ -937,6 +962,7 @@ function Staking() {
                     </div>
                 )}
 
+                
 
 
 
@@ -988,10 +1014,117 @@ function Staking() {
 
                     </div>
                 </div>
-            </div>
+                {/* ETH Section */}
+                <div className="flex flex-wrap w-full lg:w-[47%] relative mt-10">
+                    <img src={mystake} className="absolute w-full h-full" alt="" />
+                    <div className="p-2 m-2 md:m-10 w-full relative z-10 md:p-0 md:justify-between">
+                        <div className="my-autow-full md:w-[35%] ">
+                            <div className="flex items-center">
+                                <img src={eth} alt="" className="w-14 h-14 mr-4" />
+                                <p className="text-[35px] md:text-[30px] font-bold flex">Ethereum</p>
+                            </div>
 
+                        </div>
+                        <div className="flex mt-10 justify-between">
+                            <div className="w-1/2">
+                                <p>{t('total')}</p>
+                                <p className="flex"><span className="text-[25px] md:text-[40px]">1045</span><span className="text-[13px] mt-3 ml-2 md:mt-6 md:ml-4" >ETH~ETH1045.00</span></p>
+                            </div>
+                            <div className="w-1/2">
+                                <p>{t('available')}</p>
+                                <p className="flex"><span className="text-[25px] md:text-[40px]">53</span><span className="text-[13px] mt-3 ml-2 md:mt-6 md:ml-4" >ETH~ETH1045.00</span></p>
+                            </div>
+                        </div>
 
-            <div className="w-full h-40"></div>
+                    </div>
+                </div>
+                
+                {/* Conditionally Render No Stakes Yet or Show My Stakes Button */}
+                {/* Unified Section - Token Selection & Details */}
+                <div className="w-full lg:w-[80%] flex flex-col items-center rounded-lg p-8">
+                
+                    {/* Token Selection Section */}
+                    <div className="flex justify-center space-x-4 mb-8">
+                        {tokens.map((token) => (
+                            <div
+                                key={token.name}
+                                className={`flex flex-col items-center cursor-pointer p-3 rounded-lg transition-all duration-300 ${
+                                    selectedToken === token.name ? 'bg-gray-600' : 'bg-gray-700 hover:bg-gray-600'
+                                }`}
+                                onClick={() => handleSelectToken(token.name)}
+                            >
+                                <img src={token.icon} alt={token.name} className="w-14 h-14 mb-2" />
+                                <h2 className="text-xl font-bold">{token.name}</h2>
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* Conditionally Render No Stakes Yet or Staking Details */}
+                    {!hasStakes ? (
+                        <div className="w-full flex flex-col items-center justify-center bg-black rounded-lg p-8">
+                            <h2 className="text-white text-3xl font-bold mb-4">NO STAKES YET</h2>
+                            <p className="text-white mb-4">
+                                You don't have any stakes yet. Start your journey as a whale and make your first stake.
+                            </p>
+                            <button
+                                className="bg-blue-500 hover:bg-blue-700 text-white p-3 rounded-md mt-4 transform hover:scale-105 transition-transform duration-300 focus:outline-none"
+                                >
+                                GET STARTED
+                            </button>
+                        </div>
+                    ) : (
+                        // Staking Details Section
+                        <div className="w-full bg-gray-700 rounded-lg p-8 mt-4">
+                            <div className="flex flex-col space-y-4 text-left">
+                                <h3 className="text-2xl font-bold mb-4">{selectedToken} Staking Details</h3>
+
+                                {/* Total Staked */}
+                                <div className="flex justify-between items-center">
+                                    <p><FontAwesomeIcon icon={faPiggyBank} className="mr-2" />Total Staked:</p>
+                                    <p className="text-[25px]">Loading...</p>
+                                </div>
+
+                                {/* Available in Wallet */}
+                                <div className="flex justify-between items-center">
+                                    <p><FontAwesomeIcon icon={faWallet} className="mr-2" />Available in Wallet:</p>
+                                    <p className="text-[25px]">Loading...</p>
+                                </div>
+
+                                {/* Staked On */}
+                                <div className="flex justify-between items-center">
+                                    <p><FontAwesomeIcon icon={faCalendarCheck} className="mr-2" />Staked On:</p>
+                                    <p className="text-[25px]">Loading...</p>
+                                </div>
+
+                                {/* Unlock In */}
+                                <div className="flex justify-between items-center">
+                                    <p><FontAwesomeIcon icon={faLockOpen} className="mr-2" />Unlock In:</p>
+                                    <p className="text-[25px]">Loading...</p>
+                                </div>
+
+                                {/* APR */}
+                                <div className="flex justify-between items-center">
+                                    <p><FontAwesomeIcon icon={faPercentage} className="mr-2" />APR:</p>
+                                    <p className="text-[25px] text-green-500">~15%</p>
+                                </div>
+
+                                {/* Current Rewards */}
+                                <div className="flex justify-between items-center">
+                                    <p><FontAwesomeIcon icon={faCoins} className="mr-2" />Current Rewards:</p>
+                                    <p className="text-[25px]">Loading...</p>
+                                </div>
+
+                                {/* Earned Rewards */}
+                                <div className="flex justify-between items-center">
+                                    <p><FontAwesomeIcon icon={faAward} className="mr-2" />Earned Rewards:</p>
+                                    <p className="text-[25px]">Loading...</p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+
+                </div>
         </div>
     );
 }
