@@ -6,6 +6,10 @@ import usdtABI from "../usdtABI.json";
 import Swal from 'sweetalert2';
 import { Tooltip as ReactTooltip } from 'react-tooltip';
 import 'react-tooltip/dist/react-tooltip.css';
+import { ConnectButton } from '@rainbow-me/rainbowkit';
+import ReactDOM from 'react-dom/client'; // If using React 18
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faPiggyBank, faWallet, faCalendarCheck, faLockOpen, faCoins, faAward, faPercentage } from '@fortawesome/free-solid-svg-icons';
 
 
 
@@ -381,13 +385,25 @@ function Staking() {
     const handleStakeUSDT = async () => {
         if (!web3 || !contract || !address) {
             Swal.fire({
-                title: 'Oops!',
-                text: 'Please connect your wallet first!',
-                icon: 'warning',
-                confirmButtonText: 'OK'
+              title: 'Oops!',
+              text: 'Please connect your wallet first!',
+              icon: 'warning',
+              showCancelButton: true,
+              showConfirmButton: false,
+              html: `<div id="connectWalletButtonContainer"></div>`,
+              didOpen: () => {
+                const container = document.getElementById('connectWalletButtonContainer');
+                if (container) {
+                  const root = ReactDOM.createRoot(container);
+                  root.render(<ConnectButton />);
+                }
+              },
+              customClass: {
+                popup: 'custom-swal-popup'
+              }
             });
             return;
-        }
+          }
     
         try {
             // Validate input amount
@@ -842,10 +858,10 @@ function Staking() {
                                     <p className="text-[35px] md:text-[30px] font-bold flex">USDT</p>
                                 </div>
                             </div>
-                            <div className="flex flex-col mt-4 space-y-4">
+                            <div className="flex flex-col mt-4 space-y-2">
                                 {/* Total Staked */}
                                 <div className="flex justify-between items-center">
-                                    <p>{t('total')}</p>
+                                    <p><FontAwesomeIcon icon={faPiggyBank} className="mr-2" />{t('total')}</p>
                                     <div className="flex flex-col text-[25px] md:text-[30px]">
                                         <p>{stakedAmount.USDT !== null ? formatBigInt(stakedAmount.USDT) : 'Loading...'}</p>
                                         {usdtPrice !== null && stakedAmount.USDT !== null && (
@@ -855,7 +871,7 @@ function Staking() {
                                 </div>
                                 {/* Available in Wallet */}
                                 <div className="flex justify-between items-center">
-                                    <p>{t('available')}</p>
+                                    <p><FontAwesomeIcon icon={faWallet} className="mr-2" />{t('available')}</p>
                                     <div className="flex flex-col text-[25px] md:text-[30px]">
                                         <p>
                                             {usdtWalletBalance && !isNaN(parseFloat(usdtWalletBalance))
@@ -868,7 +884,7 @@ function Staking() {
                                     </div>
                                 </div>
                                 <div className="flex justify-between items-center">
-                                    <p>Staked On:</p>
+                                    <p><FontAwesomeIcon icon={faCalendarCheck} className="mr-2" />Staked On:</p>
                                     <div className="flex flex-col text-[25px] md:text-[30px] loader">
                                         {stakedOn.USDT ? (
                                           <>
@@ -881,7 +897,7 @@ function Staking() {
                                     </div>
                                 </div>
                                 <div className="flex justify-between items-center">
-                                    <p>Unlock In:</p>
+                                    <p><FontAwesomeIcon icon={faLockOpen} className="mr-2" />Unlock In:</p>
                                     <div className="flex flex-col text-[25px] md:text-[30px] loader">
                                         {stakeEnd.USDT && stakedOn.USDT ? (
                                             <>
@@ -900,7 +916,7 @@ function Staking() {
                                     </div>
                                 </div>
                                 <div className="flex justify-between items-center">
-                                    <p>Current Rewards:</p>
+                                    <p><FontAwesomeIcon icon={faCoins} className="mr-2" />Current Rewards:</p>
                                     <p className="text-[25px] md:text-[30px] loader">
                                         {stakeRewards.USDT !== null && !isNaN(stakeRewards.USDT)
                                             ? `${formatBigInt(stakeRewards.USDT)} USDT`
@@ -908,7 +924,7 @@ function Staking() {
                                     </p>
                                 </div>
                                 <div className="flex justify-between items-center">
-                                    <p>Earned Rewards:</p>
+                                    <p><FontAwesomeIcon icon={faAward} className="mr-2" />Earned Rewards:</p>
                                     <p className="text-[25px] md:text-[30px] loader">
                                         {earnedRewards.USDT !== null && !isNaN(earnedRewards.USDT)
                                             ? `${formatBigInt(earnedRewards.USDT)} USDT`
@@ -916,7 +932,7 @@ function Staking() {
                                     </p>
                                 </div>
                                 <div className="flex justify-between items-center">
-                                  <p>APR:</p>
+                                  <p><FontAwesomeIcon icon={faPercentage} className="mr-2" />APR:</p>
                                   <p className="text-[25px] md:text-[30px] loader text-green-500" id="apr-tooltip">
                                     ~15% <i className="fas fa-info-circle ml-2"></i>
                                   </p>
