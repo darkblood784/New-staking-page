@@ -879,7 +879,7 @@ function Staking() {
                                                 : 'Loading...'}
                                         </p>
                                         {usdtPrice !== null && usdtWalletBalance && !isNaN(parseFloat(usdtWalletBalance)) && (
-                                            <p className="text-sm">~${(parseFloat(usdtWalletBalance) * usdtPrice).toFixed(2)} USD</p>
+                                            <p className="text-sm text-right">~${(parseFloat(usdtWalletBalance) * usdtPrice).toFixed(2)} USD</p>
                                         )}
                                     </div>
                                 </div>
@@ -888,8 +888,8 @@ function Staking() {
                                     <div className="flex flex-col text-[25px] md:text-[30px] loader">
                                         {stakedOn.USDT ? (
                                           <>
-                                            <p>{Math.ceil((Date.now() - stakedOn.USDT * 1000) / (1000 * 60 * 60 * 24))} days ago</p>
-                                            <p className="text-sm">{new Date(stakedOn.USDT * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
+                                            <p>{new Date(stakedOn.USDT * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
+                                            <p className="text-sm text-right">{Math.ceil((Date.now() - stakedOn.USDT * 1000) / (1000 * 60 * 60 * 24))} days ago</p>
                                           </>
                                         ) : (
                                           'Loading...'
@@ -903,7 +903,7 @@ function Staking() {
                                             <>
                                                 {/* Calculate the remaining time in days */}
                                                 <p>{Math.ceil((stakeEnd.USDT * 1000 - Date.now()) / (1000 * 60 * 60 * 24))} days</p>
-                                                <p className="text-sm">{new Date(stakeEnd.USDT * 1000).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
+                                                <p className="text-sm text-right">{new Date(stakeEnd.USDT * 1000).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
                                                 <div className="w-full h-4 bg-gray-300 rounded-full overflow-hidden mt-2">
                                                     <div className="h-full bg-green-500 transition-all duration-500 ease-in-out"
                                                     style={{width: `${((Date.now() / 1000 - stakedOn.USDT) / (stakeEnd.USDT - stakedOn.USDT)) * 100}%`,
