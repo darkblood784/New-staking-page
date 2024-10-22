@@ -235,6 +235,16 @@ function Staking() {
         }
     }, [isConnected]);
     
+    // Define individual stake checks
+    const hasUSDTStake = stakedAmount.USDT !== null && stakedAmount.USDT > 0;
+    const hasBTCStake = stakedAmount.BTC !== null && stakedAmount.BTC > 0;
+    const hasETHStake = stakedAmount.ETH !== null && stakedAmount.ETH > 0;
+
+    // Update the 'hasStakes' state based on individual token stakes
+    useEffect(() => {
+        const hasStakeValue = hasUSDTStake || hasBTCStake || hasETHStake;
+        setHasStakes(hasStakeValue);
+    }, [hasUSDTStake, hasBTCStake, hasETHStake]);
 
     // Fetch wallet balance function to be called in useEffect
     useEffect(() => {
@@ -842,8 +852,8 @@ function Staking() {
                         </p>
                         <button
                             onClick={scrollToStakingSection}
-                            className="bg-blue-500 text-white p-3 rounded-md mt-4"
-                        >
+                            className="bg-blue-500 hover:bg-blue-700 text-white p-3 rounded-md mt-4 transform hover:scale-105 transition-transform duration-300 focus:outline-none"
+                            >
                             GET STARTED
                         </button>
                     </div>
@@ -1014,117 +1024,8 @@ function Staking() {
 
                     </div>
                 </div>
-                {/* ETH Section */}
-                <div className="flex flex-wrap w-full lg:w-[47%] relative mt-10">
-                    <img src={mystake} className="absolute w-full h-full" alt="" />
-                    <div className="p-2 m-2 md:m-10 w-full relative z-10 md:p-0 md:justify-between">
-                        <div className="my-autow-full md:w-[35%] ">
-                            <div className="flex items-center">
-                                <img src={eth} alt="" className="w-14 h-14 mr-4" />
-                                <p className="text-[35px] md:text-[30px] font-bold flex">Ethereum</p>
-                            </div>
-
-                        </div>
-                        <div className="flex mt-10 justify-between">
-                            <div className="w-1/2">
-                                <p>{t('total')}</p>
-                                <p className="flex"><span className="text-[25px] md:text-[40px]">1045</span><span className="text-[13px] mt-3 ml-2 md:mt-6 md:ml-4" >ETH~ETH1045.00</span></p>
-                            </div>
-                            <div className="w-1/2">
-                                <p>{t('available')}</p>
-                                <p className="flex"><span className="text-[25px] md:text-[40px]">53</span><span className="text-[13px] mt-3 ml-2 md:mt-6 md:ml-4" >ETH~ETH1045.00</span></p>
-                            </div>
-                        </div>
-
-                    </div>
-                </div>
-                
-                {/* Conditionally Render No Stakes Yet or Show My Stakes Button */}
-                {/* Unified Section - Token Selection & Details */}
-                <div className="w-full lg:w-[80%] flex flex-col items-center rounded-lg p-8">
-                
-                    {/* Token Selection Section */}
-                    <div className="flex justify-center space-x-4 mb-8">
-                        {tokens.map((token) => (
-                            <div
-                                key={token.name}
-                                className={`flex flex-col items-center cursor-pointer p-3 rounded-lg transition-all duration-300 ${
-                                    selectedToken === token.name ? 'bg-gray-600' : 'bg-gray-700 hover:bg-gray-600'
-                                }`}
-                                onClick={() => handleSelectToken(token.name)}
-                            >
-                                <img src={token.icon} alt={token.name} className="w-14 h-14 mb-2" />
-                                <h2 className="text-xl font-bold">{token.name}</h2>
-                            </div>
-                        ))}
-                    </div>
-
-                    {/* Conditionally Render No Stakes Yet or Staking Details */}
-                    {!hasStakes ? (
-                        <div className="w-full flex flex-col items-center justify-center bg-black rounded-lg p-8">
-                            <h2 className="text-white text-3xl font-bold mb-4">NO STAKES YET</h2>
-                            <p className="text-white mb-4">
-                                You don't have any stakes yet. Start your journey as a whale and make your first stake.
-                            </p>
-                            <button
-                                className="bg-blue-500 hover:bg-blue-700 text-white p-3 rounded-md mt-4 transform hover:scale-105 transition-transform duration-300 focus:outline-none"
-                                >
-                                GET STARTED
-                            </button>
-                        </div>
-                    ) : (
-                        // Staking Details Section
-                        <div className="w-full bg-gray-700 rounded-lg p-8 mt-4">
-                            <div className="flex flex-col space-y-4 text-left">
-                                <h3 className="text-2xl font-bold mb-4">{selectedToken} Staking Details</h3>
-
-                                {/* Total Staked */}
-                                <div className="flex justify-between items-center">
-                                    <p><FontAwesomeIcon icon={faPiggyBank} className="mr-2" />Total Staked:</p>
-                                    <p className="text-[25px]">Loading...</p>
-                                </div>
-
-                                {/* Available in Wallet */}
-                                <div className="flex justify-between items-center">
-                                    <p><FontAwesomeIcon icon={faWallet} className="mr-2" />Available in Wallet:</p>
-                                    <p className="text-[25px]">Loading...</p>
-                                </div>
-
-                                {/* Staked On */}
-                                <div className="flex justify-between items-center">
-                                    <p><FontAwesomeIcon icon={faCalendarCheck} className="mr-2" />Staked On:</p>
-                                    <p className="text-[25px]">Loading...</p>
-                                </div>
-
-                                {/* Unlock In */}
-                                <div className="flex justify-between items-center">
-                                    <p><FontAwesomeIcon icon={faLockOpen} className="mr-2" />Unlock In:</p>
-                                    <p className="text-[25px]">Loading...</p>
-                                </div>
-
-                                {/* APR */}
-                                <div className="flex justify-between items-center">
-                                    <p><FontAwesomeIcon icon={faPercentage} className="mr-2" />APR:</p>
-                                    <p className="text-[25px] text-green-500">~15%</p>
-                                </div>
-
-                                {/* Current Rewards */}
-                                <div className="flex justify-between items-center">
-                                    <p><FontAwesomeIcon icon={faCoins} className="mr-2" />Current Rewards:</p>
-                                    <p className="text-[25px]">Loading...</p>
-                                </div>
-
-                                {/* Earned Rewards */}
-                                <div className="flex justify-between items-center">
-                                    <p><FontAwesomeIcon icon={faAward} className="mr-2" />Earned Rewards:</p>
-                                    <p className="text-[25px]">Loading...</p>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-                </div>
-
-                </div>
+            </div>
+            <div className="w-full h-40"></div>
         </div>
     );
 }
