@@ -111,6 +111,23 @@ function Staking() {
         ETH: null,
     });
 
+    const calculateAPR = (duration: any) => {
+        if (duration <= 30) {
+            return 15; // 15% for 1 month
+        } else if (duration <= 180) {
+            return 24; // 24% for 6 months
+        } else if (duration <= 365) {
+            return 36; // 36% for 1 year
+        } else {
+            return 0; // Default or error case
+        }
+    };
+    
+    const apr = stakeEnd.USDT && stakedOn.USDT 
+        ? calculateAPR(Math.ceil((stakeEnd.USDT * 1000 - stakedOn.USDT * 1000) / (1000 * 60 * 60 * 24)))
+        : 0;
+    
+
     // Function to format BigInt values for ERC20 tokens with 18 decimals
     const formatBigInt = (value: any, decimals = 2) => {
         if (!value) return "0.00";
@@ -875,6 +892,13 @@ function Staking() {
                                     </div>
                                 </div>
                                 <div className="flex justify-between items-center">
+                                  <p><FontAwesomeIcon icon={faPercentage} className="mr-2" />APR:</p>
+                                  <p className="text-[25px] md:text-[30px] loader text-green-500" id="apr-tooltip">
+                                    ~{apr}% <i className="fas fa-info-circle ml-2"></i>
+                                  </p>
+                                  <ReactTooltip anchorId="apr-tooltip" place="top" content="This is the annual percentage rate (APR) which determines the yield for your staked tokens." />
+                                </div>
+                                <div className="flex justify-between items-center">
                                     <p><FontAwesomeIcon icon={faCoins} className="mr-2" />Current Rewards:</p>
                                     <p className="text-[25px] md:text-[30px] loader">
                                         {stakeRewards.USDT !== null && !isNaN(stakeRewards.USDT)
@@ -884,19 +908,21 @@ function Staking() {
                                 </div>
                                 <div className="flex justify-between items-center">
                                     <p><FontAwesomeIcon icon={faAward} className="mr-2" />Earned Rewards:</p>
-                                    <p className="text-[25px] md:text-[30px] loader">
-                                        {earnedRewards.USDT !== null && !isNaN(earnedRewards.USDT)
-                                            ? `${formatBigInt(earnedRewards.USDT)} USDT`
-                                            : 'Loading...'}
-                                    </p>
+                                    <div className="flex flex-col text-[25px] md:text-[30px] loader">
+                                        {earnedRewards.USDT !== null && !isNaN(earnedRewards.USDT) && stakedAmount.USDT !== null ? (
+                                            <>
+                                                <p>{`${formatBigInt(earnedRewards.USDT)} USDT`}</p>
+                                                {/* Calculate Earned Reward Percentage */}
+                                                <p className="text-sm text-right text-green-500">
+                                                    ~{Math.min((formatBigInt((earnedRewards.USDT / stakedAmount.USDT) * 100)), apr)}% Earned
+                                                </p>
+                                            </>
+                                        ) : (
+                                            'Loading...'
+                                        )}
+                                    </div>
                                 </div>
-                                <div className="flex justify-between items-center">
-                                  <p><FontAwesomeIcon icon={faPercentage} className="mr-2" />APR:</p>
-                                  <p className="text-[25px] md:text-[30px] loader text-green-500" id="apr-tooltip">
-                                    ~15% <i className="fas fa-info-circle ml-2"></i>
-                                  </p>
-                                  <ReactTooltip anchorId="apr-tooltip" place="top" content="This is the annual percentage rate (APR) which determines the yield for your staked tokens." />
-                                </div>
+                                
 
                                 <div className="flex justify-between mt-4">
                                     <button
