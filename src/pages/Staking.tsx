@@ -617,7 +617,7 @@ function Staking() {
             {/* Conditionally Render No Stakes Yet or Show My Stakes Button */}
             {!hasStakes ? (
                 <div className="w-full lg:w-[47%] flex flex-col items-center justify-center bg-black rounded-lg p-8">
-                    <h2 className="text-white text-3xl font-bold mb-4">YOUR PLAN</h2>
+                    <h2 className="text-white text-3xl font-bold mb-4">NO STAKES YET</h2>
                     <p className="text-white mb-4">
                         You don't have any stakes yet. Start your journey as a whale and make your first stake.
                     </p>
