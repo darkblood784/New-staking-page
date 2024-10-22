@@ -355,6 +355,14 @@ function Staking() {
             stakingSection.scrollIntoView({ behavior: 'smooth' });
         }
     };
+
+    // Function to scroll to the staking section
+    const scrollToStakingSection2 = () => {
+        const stakingSection = document.getElementById('my-stakes'); // Assume you have a wrapper element with this ID
+        if (stakingSection) {
+            stakingSection.scrollIntoView({ behavior: 'smooth' });
+        }
+    };
     
     useEffect(() => {
         if (window.ethereum) {
@@ -606,79 +614,31 @@ function Staking() {
                 </div>
                 
             </div>
-            {/* Conditionally Render No Stakes or Staking Details */}
-                {!hasStakes ? (
-                    <div className="w-full lg:w-[47%] flex flex-col items-center justify-center bg-black rounded-lg p-8">
-                        <h2 className="text-white text-3xl font-bold mb-4">YOUR PLAN</h2>
-                        <p className="text-white mb-4">NO STAKES YET</p>
-                        <p className="text-white mb-4">
-                            You don't have any stakes yet. Start your journey as a whale and make your first stake.
-                        </p>
-                        <button
-                            onClick={scrollToStakingSection}
-                            className="bg-blue-500 text-white p-3 rounded-md mt-4"
-                        >
-                            GET STARTED
-                        </button>
-                    </div>
-                ) : (
-                    <div className="flex flex-wrap w-full lg:w-[47%] relative mt-10">
-                        <img src={mystake} className="absolute w-full h-full" alt="" />
-                        <div className="p-2 m-2 md:m-10 w-full relative z-10 md:p-0 md:justify-between">
-                            <div className="my-auto w-full md:w-[35%]">
-                                <div className="flex items-center mb-4">
-                                    <img src={usdt} alt="" className="w-14 h-14 mr-4" />
-                                    <p className="text-[35px] md:text-[30px] font-bold flex">USDT</p>
-                                </div>
-                            </div>
-                            <div className="flex flex-col mt-4 space-y-4">
-                                <div className="flex justify-between">
-                                    <p>{t('total')}</p>
-                                    <p className="text-[25px] md:text-[30px]">
-                                        {stakedAmount.USDT !== null ? stakedAmount.USDT.toFixed(2) : 'Loading...'}
-                                    </p>
-                                </div>
-                                <div className="flex justify-between">
-                                    <p>{t('available')}</p>
-                                    <p className="text-[25px] md:text-[30px]">
-                                        {usdtWalletBalance && !isNaN(parseFloat(usdtWalletBalance))
-                                            ? parseFloat(usdtWalletBalance).toFixed(2)
-                                            : 'Loading...'}
-                                    </p>
-                                </div>
-                                <div className="flex justify-between">
-                                    <p>Staked On:</p>
-                                    <p className="text-[25px] md:text-[30px] loader">
-                                        {stakedOn.USDT ? new Date(stakedOn.USDT * 1000).toLocaleString() : 'Loading...'}
-                                    </p>
-                                </div>
-                                <div className="flex justify-between">
-                                    <p>Unlock On:</p>
-                                    <p className="text-[25px] md:text-[30px] loader">
-                                        {stakeEnd.USDT ? new Date(stakeEnd.USDT * 1000).toLocaleString() : 'Loading...'}
-                                    </p>
-                                </div>
-                                <div className="flex justify-between">
-                                    <p>Current Rewards:</p>
-                                    <p className="text-[25px] md:text-[30px] loader">
-                                        {stakeRewards.USDT !== null && !isNaN(stakeRewards.USDT)
-                                            ? `${stakeRewards.USDT.toFixed(2)} USDT`
-                                            : 'Loading...'}
-                                    </p>
-                                </div>
-                                <div className="flex justify-between mt-4">
-                                    <button
-                                        className="bg-blue-500 text-white p-2 rounded-md"
-                                        onClick={() => handleUnstake(usdtAddress)}
-                                    >
-                                        Unlock
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                )}
-
+            {/* Conditionally Render No Stakes Yet or Show My Stakes Button */}
+            {!hasStakes ? (
+                <div className="w-full lg:w-[47%] flex flex-col items-center justify-center bg-black rounded-lg p-8">
+                    <h2 className="text-white text-3xl font-bold mb-4">YOUR PLAN</h2>
+                    <p className="text-white mb-4">
+                        You don't have any stakes yet. Start your journey as a whale and make your first stake.
+                    </p>
+                    <button
+                        onClick={scrollToStakingSection}
+                        className="bg-blue-500 hover:bg-blue-700 text-white p-3 rounded-md mt-4 transform hover:scale-105 transition-transform duration-300 focus:outline-none"
+                    >
+                        GET STARTED
+                    </button>
+                </div>
+            ) : (
+                // Render My Stakes Button if Wallet has Stakes
+                <div className="flex justify-end w-full lg:w-[100%] mt-4 pr-6">
+                    <button
+                        onClick={scrollToStakingSection2}
+                        className="ml-auto bg-blue-500 hover:bg-blue-700 text-white p-3 rounded-md transform hover:scale-105 transition-transform duration-300 shadow-lg hover:shadow-xl active:scale-95 focus:outline-none"
+                    >
+                        MY STAKES
+                    </button>
+                </div>
+            )}
 
             <div className="flex justify-between w-full" id="staking-section">
                 <h1 className="flex md:text-[60px] text-[30px] font-bold">{t('trading')}</h1>
@@ -828,7 +788,7 @@ function Staking() {
                     <img src={discord} alt="" className="w-full h-auto cursor-pointer" />
                 </a>
             </div>
-            <div className="flex justify-between w-full mt-32">
+            <div className="flex justify-between w-full mt-32" id="my-stakes">
                 <h1 className="flex md:text-[60px] text-[30px] font-bold">{t('staking')}</h1>
                 <p className="md:text-[20px] text-[13px] items-end flex">{t('risk')}</p>
             </div>
@@ -836,8 +796,7 @@ function Staking() {
                 {/* Conditionally Render No Stakes or Staking Details */}
                 {!hasStakes ? (
                     <div className="w-full lg:w-[47%] flex flex-col items-center justify-center bg-black rounded-lg p-8">
-                        <h2 className="text-white text-3xl font-bold mb-4">YOUR PLAN</h2>
-                        <p className="text-white mb-4">NO STAKES YET</p>
+                        <h2 className="text-white text-3xl font-bold mb-4">NO STAKES YET</h2>
                         <p className="text-white mb-4">
                             You don't have any stakes yet. Start your journey as a whale and make your first stake.
                         </p>
@@ -941,7 +900,7 @@ function Staking() {
 
                                 <div className="flex justify-between mt-4">
                                     <button
-                                        className="bg-blue-500 text-white p-2 rounded-md"
+                                        className="bg-blue-500 hover:bg-blue-700 text-white p-3 rounded-md transform hover:scale-105 transition-transform duration-300 shadow-lg hover:shadow-xl active:scale-95 focus:outline-none"
                                         onClick={() => handleUnstake(usdtAddress)}
                                     >
                                         Unlock
