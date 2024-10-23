@@ -4,11 +4,14 @@ interface WhaleSliderProps {
     sliderValue: number;
     setSliderValue: (value: number) => void;
     getWhaleHeadSrc: () => string;
+    availableBalance: number | string; // Added availableBalance to show the balance above the slider
+    setInputValue: (value: string) => void; // Added to update input field value based on slider movement
+
 }
 
 
 
-const WhaleSlider: React.FC<WhaleSliderProps> = ({ sliderValue, setSliderValue, getWhaleHeadSrc }) => {
+const WhaleSlider: React.FC<WhaleSliderProps> = ({ sliderValue, setSliderValue, getWhaleHeadSrc, availableBalance, setInputValue}) => {
     const sliderContainerRef = useRef<HTMLDivElement>(null);
     const whaleHeadRef = useRef<HTMLImageElement>(null);
     const [isDragging, setIsDragging] = useState<boolean>(false);
@@ -42,8 +45,14 @@ const WhaleSlider: React.FC<WhaleSliderProps> = ({ sliderValue, setSliderValue, 
             const mouseX = event.clientX - bounds.left;
             const newValue = Math.max(0, Math.min(100, (mouseX / bounds.width) * 100));
             setSliderValue(newValue);
+
+            // Update the input field value based on slider value
+            if (typeof availableBalance === 'number' && !isNaN(availableBalance)) {
+                const calculatedValue = ((availableBalance * newValue) / 100).toFixed(2);
+                setInputValue(calculatedValue);
+            }
         }
-    }, [isDragging, setSliderValue]);
+    }, [isDragging, setSliderValue, availableBalance, setInputValue]);
 
     // Attaching and cleaning up event listeners
     useEffect(() => {
@@ -105,7 +114,17 @@ const WhaleSlider: React.FC<WhaleSliderProps> = ({ sliderValue, setSliderValue, 
             {/* Buttons for preset values */}
             <div className="buttons-container flex justify-between w-full">
                 {[25, 50, 75, 100].map((val) => (
-                    <button key={val} onClick={() => setSliderValue(val)} className="text-sm w-[20%] py-1 rounded-full transition-colors duration-200 border-2 hover:bg-white hover:text-black">
+                    <button 
+                        key={val} 
+                        onClick={() => {
+                            setSliderValue(val);
+                            if (typeof availableBalance === 'number' && !isNaN(availableBalance)) {
+                                const calculatedValue = ((availableBalance * val) / 100).toFixed(2);
+                                setInputValue(calculatedValue);
+                            }
+                        }} 
+                        className="text-sm w-[20%] py-1 rounded-full transition-colors duration-200 border-2 hover:bg-white hover:text-black"
+                    >
                         {val === 100 ? 'All In' : `${val}%`}
                     </button>
                 ))}

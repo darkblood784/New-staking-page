@@ -58,6 +58,19 @@ const usdtAddress = import.meta.env.VITE_USDT_ADDRESS;
 const wbtcAddress = import.meta.env.VITE_WBTC_ADDRESS;
 const wethAddress = import.meta.env.VITE_WETH_ADDRESS;
 
+const erc20ABI = [
+    {
+      constant: true,
+      inputs: [{ name: "_owner", type: "address" }],
+      name: "balanceOf",
+      outputs: [{ name: "balance", type: "uint256" }],
+      payable: false,
+      stateMutability: "view",
+      type: "function",
+    },
+  ];
+  
+
 
 
 function Staking() {
@@ -75,6 +88,10 @@ function Staking() {
     const [usdtPrice, setUsdtPrice] = useState<number | null>(null);
 
     const [usdtWalletBalance, setUsdtWalletBalance] = useState<string | null>(null);
+    const [btcWalletBalance, setBtcWalletBalance] = useState<string | null>(null);
+    const [ethWalletBalance, setEthWalletBalance] = useState<string | null>(null);
+
+
     const [testMode, setTestMode] = useState<boolean>(false);
 
     const pollingInterval = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -251,31 +268,30 @@ function Staking() {
         const fetchWalletBalance = async () => {
             if (web3 && address && isConnected) {
                 try {
-                    // Create a USDT contract instance
-                    const usdtContract = new web3.eth.Contract(usdtABI, usdtAddress);
+                    // USDT Balance
+                    const usdtContract = new web3.eth.Contract(erc20ABI, usdtAddress);
+                    const usdtBalance: string = await usdtContract.methods.balanceOf(address).call();
+                    setUsdtWalletBalance(web3.utils.fromWei(usdtBalance, 'ether'));
     
-                    // Ensure the balanceOf method is available
-                    if (usdtContract.methods.balanceOf) {
-                        // Fetch balance for the connected address
-                        const balance: string = await usdtContract.methods.balanceOf(address).call();
-                        
-                        if (balance) {
-                            const balanceInUSDT = web3.utils.fromWei(balance, 'ether');
-                            setUsdtWalletBalance(balanceInUSDT);
-                        } else {
-                            console.error("Failed to fetch balance: Balance returned undefined or null");
-                            setUsdtWalletBalance("Error");
-                        }
-                    } else {
-                        console.error("balanceOf method not available in the contract ABI");
-                        setUsdtWalletBalance("Error");
-                    }
+                    // WBTC Balance
+                    const btcContract = new web3.eth.Contract(erc20ABI, wbtcAddress);
+                    const btcBalance: string = await btcContract.methods.balanceOf(address).call();
+                    setBtcWalletBalance(web3.utils.fromWei(btcBalance, 'ether'));
+    
+                    // WETH Balance
+                    const ethContract = new web3.eth.Contract(erc20ABI, wethAddress);
+                    const ethBalance: string = await ethContract.methods.balanceOf(address).call();
+                    setEthWalletBalance(web3.utils.fromWei(ethBalance, 'ether'));
                 } catch (error) {
-                    console.error("Error fetching USDT balance:", error);
+                    console.error("Error fetching balances:", error);
                     setUsdtWalletBalance("Error");
+                    setBtcWalletBalance("Error");
+                    setEthWalletBalance("Error");
                 }
             } else {
                 setUsdtWalletBalance("Wallet not connected");
+                setBtcWalletBalance("Wallet not connected");
+                setEthWalletBalance("Wallet not connected");
             }
         };
     
@@ -283,6 +299,9 @@ function Staking() {
             fetchWalletBalance();
         }
     }, [web3, address, isConnected]);
+    
+
+    
     
     // Function to fetch staking information
     // Example of fetching staking information and handling BigInt correctly
@@ -699,45 +718,88 @@ function Staking() {
             <div className="flex flex-wrap w-full relative mt-10">
                 <img src={usdtbackground} className="absolute w-full h-full" alt="" />
                 <div className="p-2 flex flex-wrap w-full relative z-10 md:p-0 md:justify-between">
+                    {/* Left Side: Token Information and Duration */}
                     <div className="my-auto pt-5 md:pt-0 ml-2 w-full md:w-[35%] lg:ml-10">
                         <div className="flex items-center">
-                            <img src={usdt} alt="" className="w-14 h-14 mr-4" />
+                            <img src={usdt} alt="USDT Icon" className="w-14 h-14 mr-4" />
                             <p className="text-[35px] md:text-[30px] font-bold flex">USDT</p>
                         </div>
                         <DurationSelector durations={durationOptions} setDuration={setUsdtDuration} />
-
                     </div>
+                    
+                    {/* Middle Section: Available Balance, Stake Input, and Slider */}
                     <div className="w-full md:w-[30%] lg:pl-10 pt-16 pb-5">
-                        <div className="flex justify-between">
-                            <p className="text-[25px] md">{t('stake')}</p>
+                        {/* Available in Wallet */}
+                        <div className="flex justify-between items-center mb-5">
+                            <p><FontAwesomeIcon icon={faWallet} className="mr-2" />Available in Wallet:</p>
+                            <div className="flex flex-col text-[25px] md:text-[30px]">
+                                <p>
+                                    {usdtWalletBalance && usdtWalletBalance !== "Error" && usdtWalletBalance !== "Wallet not connected" && !isNaN(parseFloat(usdtWalletBalance))
+                                        ? parseFloat(usdtWalletBalance).toFixed(2)
+                                        : usdtWalletBalance}
+                                </p>
+                                {usdtPrice !== null && usdtWalletBalance && usdtWalletBalance !== "Error" && usdtWalletBalance !== "Wallet not connected" && !isNaN(parseFloat(usdtWalletBalance)) && (
+                                    <p className="text-sm text-right">~${(parseFloat(usdtWalletBalance) * usdtPrice).toFixed(2)} USD</p>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Stake Input */}
+                        <div className="flex justify-between items-center">
+                            <p className="text-[25px] md:text-[20px]">{t('stake')}</p>
                             <PrimeInput
                                 value={inputValueusdt}
-                                setValue={setInputValueusdt}
-                                validatePrime={validatePrime}
+                                setValue={(val: any) => {
+                                    setInputValueusdt(val);
 
+                                    // Update the slider value based on the input value
+                                    if (usdtWalletBalance && usdtWalletBalance !== "Error" && usdtWalletBalance !== "Wallet not connected" && !isNaN(parseFloat(usdtWalletBalance))) {
+                                        const balance = parseFloat(usdtWalletBalance);
+                                        const newSliderValue = Math.min(100, (val / balance) * 100);
+                                        setSliderValueusdt(newSliderValue);
+                                    }
+                                }}
+                                validatePrime={validatePrime}
                             />
                         </div>
-                        <div className="flex w-full justify-between">
-                            <p className="text-[25px] md">{usdtduration ? usdtduration : "0 Days"}</p>
+
+                        {/* Duration and Slider */}
+                        <div className="flex w-full justify-between items-center">
+                            <p className="text-[25px] md:text-[20px]">{usdtduration ? usdtduration : "0 Days"}</p>
                             <div className="text-2xl mt-2.5">{`${Math.round(sliderValueusdt)}%`}</div>
                         </div>
+
+                        {/* Whale Slider */}
                         <WhaleSlider
                             sliderValue={sliderValueusdt}
-                            setSliderValue={setSliderValueusdt}
+                            setSliderValue={(val) => {
+                                setSliderValueusdt(val);
+                                if (usdtWalletBalance && usdtWalletBalance !== "Error" && usdtWalletBalance !== "Wallet not connected" && !isNaN(parseFloat(usdtWalletBalance))) {
+                                    const calculatedValue = ((parseFloat(usdtWalletBalance) * val) / 100).toFixed(2);
+                                    setInputValueusdt(calculatedValue);
+                                }
+                            }}
                             getWhaleHeadSrc={getWhaleHeadSrcusdt}
+                            availableBalance={usdtWalletBalance !== "Error" && usdtWalletBalance !== "Wallet not connected" && !isNaN(formatBigInt(usdtWalletBalance))
+                                ? formatBigInt(usdtWalletBalance)
+                                : 0}
+                            setInputValue={setInputValueusdt}
                         />
                     </div>
+
                     {/* Stake Button */}
-                    <div className="w-full h-20 md:w-1/4 md:h-full opacity-50 bg-black rounded-2xl flex justify-center items-center cursor-pointer">
+                    <div className="w-full h-20 md:w-1/4 md:h-full opacity-70 bg-black rounded-2xl flex justify-center items-center cursor-pointer">
                         <button
-                            onClick={handleStakeUSDT} // <-- Add this line
-                            className="bg-blue-500 text-white p-2 rounded-md mt-4"
+                            onClick={handleStakeUSDT} 
+                            className="text-[35px] md:text-[30px] font-bold transform hover:scale-105 transition-transform duration-300 shadow-lg hover:shadow-xl active:scale-95 focus:outline-none text-white"
                         >
-                            {t('take')}
+                            {t('take')} <span className="ml-2">&#9660;</span>
                         </button>
                     </div>
                 </div>
             </div>
+
+
 
             {/* BTC Section */}
             <div className="flex flex-wrap w-full relative mt-10">
@@ -773,6 +835,10 @@ function Staking() {
                             sliderValue={sliderValuebtc}
                             setSliderValue={setSliderValuebtc}
                             getWhaleHeadSrc={getWhaleHeadSrcbtc}
+                            availableBalance={btcWalletBalance !== "Error" && btcWalletBalance !== "Wallet not connected" && !isNaN(formatBigInt(btcWalletBalance))
+                                ? formatBigInt(btcWalletBalance)
+                                : 0}
+                            setInputValue={setInputValueusdt}
                         />
                     </div>
                     <div className="w-full h-20 md:w-1/4 md:h-full opacity-50 bg-black rounded-2xl flex justify-center items-center cursor-pointer">
@@ -817,6 +883,10 @@ function Staking() {
                             sliderValue={sliderValueeth}
                             setSliderValue={setSliderValueeth}
                             getWhaleHeadSrc={getWhaleHeadSrceth}
+                            availableBalance={ethWalletBalance !== "Error" && ethWalletBalance !== "Wallet not connected" && !isNaN(formatBigInt(ethWalletBalance))
+                                ? formatBigInt(ethWalletBalance)
+                                : 0}
+                            setInputValue={setInputValueusdt}
                         />
                     </div>
                     <div className="w-full h-20 md:w-1/4 md:h-full opacity-50 bg-black rounded-2xl flex justify-center items-center cursor-pointer">
@@ -976,56 +1046,10 @@ function Staking() {
 
 
 
-                {/* BTC Section */}
-                <div className="flex flex-wrap w-full lg:w-[47%] relative mt-10">
-                    <img src={mystake} className="absolute w-full h-full" alt="" />
-                    <div className="p-2 m-2 md:m-10 w-full relative z-10 md:p-0 md:justify-between">
-                        <div className="my-autow-full md:w-[35%] ">
-                            <div className="flex items-center">
-                                <img src={btc} alt="" className="w-14 h-14 mr-4" />
-                                <p className="text-[35px] md:text-[30px] font-bold flex">Bitcoin</p>
-                            </div>
+                
 
-                        </div>
-                        <div className="flex mt-10 justify-between">
-                            <div className="w-1/2">
-                                <p>{t('total')}</p>
-                                <p className="flex"><span className="text-[25px] md:text-[40px]">1045</span><span className="text-[13px] mt-3 ml-2 md:mt-6 md:ml-4" >BTC~BTC1045.00</span></p>
-                            </div>
-                            <div className="w-1/2">
-                                <p>{t('available')}</p>
-                                <p className="flex"><span className="text-[25px] md:text-[40px]">53</span><span className="text-[13px] mt-3 ml-2 md:mt-6 md:ml-4" >BTC~BTC1045.00</span></p>
-                            </div>
-                        </div>
-
-                    </div>
                 </div>
-                {/* ETH Section */}
-                <div className="flex flex-wrap w-full lg:w-[47%] relative mt-10">
-                    <img src={mystake} className="absolute w-full h-full" alt="" />
-                    <div className="p-2 m-2 md:m-10 w-full relative z-10 md:p-0 md:justify-between">
-                        <div className="my-autow-full md:w-[35%] ">
-                            <div className="flex items-center">
-                                <img src={eth} alt="" className="w-14 h-14 mr-4" />
-                                <p className="text-[35px] md:text-[30px] font-bold flex">Ethereum</p>
-                            </div>
-
-                        </div>
-                        <div className="flex mt-10 justify-between">
-                            <div className="w-1/2">
-                                <p>{t('total')}</p>
-                                <p className="flex"><span className="text-[25px] md:text-[40px]">1045</span><span className="text-[13px] mt-3 ml-2 md:mt-6 md:ml-4" >ETH~ETH1045.00</span></p>
-                            </div>
-                            <div className="w-1/2">
-                                <p>{t('available')}</p>
-                                <p className="flex"><span className="text-[25px] md:text-[40px]">53</span><span className="text-[13px] mt-3 ml-2 md:mt-6 md:ml-4" >ETH~ETH1045.00</span></p>
-                            </div>
-                        </div>
-
-                    </div>
-                </div>
-            </div>
-            <div className="w-full h-40"></div>
+                <div className="w-full h-40"></div>
         </div>
     );
 }
