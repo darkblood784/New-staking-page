@@ -289,9 +289,9 @@ function Staking() {
                     setEthWalletBalance("Error");
                 }
             } else {
-                setUsdtWalletBalance("Wallet not connected");
-                setBtcWalletBalance("Wallet not connected");
-                setEthWalletBalance("Wallet not connected");
+                setUsdtWalletBalance("Connect Wallet");
+                setBtcWalletBalance("Connect Wallet");
+                setEthWalletBalance("Connect Wallet");
             }
         };
     
@@ -686,15 +686,15 @@ function Staking() {
             {/* Conditionally Render No Stakes Yet or Show My Stakes Button */}
             {!hasStakes ? (
                 <div className="w-full lg:w-[47%] flex flex-col items-center justify-center bg-black rounded-lg p-8">
-                    <h2 className="text-white text-3xl font-bold mb-4">NO STAKES YET</h2>
+                    <h2 className="text-white text-3xl font-bold mb-4">{t('nostakeyet')}</h2>
                     <p className="text-white mb-4">
-                        You don't have any stakes yet. Start your journey as a whale and make your first stake.
+                        {t('nostakeline')}
                     </p>
                     <button
                         onClick={scrollToStakingSection}
                         className="bg-blue-500 hover:bg-blue-700 text-white p-3 rounded-md mt-4 transform hover:scale-105 transition-transform duration-300 focus:outline-none"
                     >
-                        GET STARTED
+                        {t('getstarted')}
                     </button>
                 </div>
             ) : (
@@ -732,13 +732,13 @@ function Staking() {
                         {/* Available in Wallet */}
                         <div className="flex justify-between items-center mb-5">
                             <p><FontAwesomeIcon icon={faWallet} className="mr-2" />{t('available')}</p>
-                            <div className="flex flex-col text-[25px] md:text-[30px]">
+                            <div className="flex flex-col text-[20px] md:text-[25px]">
                                 <p>
-                                    {usdtWalletBalance && usdtWalletBalance !== "Error" && usdtWalletBalance !== "Wallet not connected" && !isNaN(parseFloat(usdtWalletBalance))
+                                    {usdtWalletBalance && usdtWalletBalance !== "Error" && usdtWalletBalance !== "Connect Wallet" && !isNaN(parseFloat(usdtWalletBalance))
                                         ? parseFloat(usdtWalletBalance).toFixed(2)
                                         : usdtWalletBalance}
                                 </p>
-                                {usdtPrice !== null && usdtWalletBalance && usdtWalletBalance !== "Error" && usdtWalletBalance !== "Wallet not connected" && !isNaN(parseFloat(usdtWalletBalance)) && (
+                                {usdtPrice !== null && usdtWalletBalance && usdtWalletBalance !== "Error" && usdtWalletBalance !== "Connect Wallet" && !isNaN(parseFloat(usdtWalletBalance)) && (
                                     <p className="text-sm text-right">~${(parseFloat(usdtWalletBalance) * usdtPrice).toFixed(2)} USD</p>
                                 )}
                             </div>
@@ -753,7 +753,7 @@ function Staking() {
                                     setInputValueusdt(val);
 
                                     // Update the slider value based on the input value
-                                    if (usdtWalletBalance && usdtWalletBalance !== "Error" && usdtWalletBalance !== "Wallet not connected" && !isNaN(parseFloat(usdtWalletBalance))) {
+                                    if (usdtWalletBalance && usdtWalletBalance !== "Error" && usdtWalletBalance !== "Connect Wallet" && !isNaN(parseFloat(usdtWalletBalance))) {
                                         const balance = parseFloat(usdtWalletBalance);
                                         const newSliderValue = Math.min(100, (val / balance) * 100);
                                         setSliderValueusdt(newSliderValue);
@@ -774,13 +774,13 @@ function Staking() {
                             sliderValue={sliderValueusdt}
                             setSliderValue={(val) => {
                                 setSliderValueusdt(val);
-                                if (usdtWalletBalance && usdtWalletBalance !== "Error" && usdtWalletBalance !== "Wallet not connected" && !isNaN(parseFloat(usdtWalletBalance))) {
+                                if (usdtWalletBalance && usdtWalletBalance !== "Error" && usdtWalletBalance !== "Connect Wallet" && !isNaN(parseFloat(usdtWalletBalance))) {
                                     const calculatedValue = ((parseFloat(usdtWalletBalance) * val) / 100).toFixed(2);
                                     setInputValueusdt(calculatedValue);
                                 }
                             }}
                             getWhaleHeadSrc={getWhaleHeadSrcusdt}
-                            availableBalance={usdtWalletBalance !== "Error" && usdtWalletBalance !== "Wallet not connected" && !isNaN(formatBigInt(usdtWalletBalance))
+                            availableBalance={usdtWalletBalance !== "Error" && usdtWalletBalance !== "Connect Wallet" && !isNaN(formatBigInt(usdtWalletBalance))
                                 ? formatBigInt(usdtWalletBalance)
                                 : 0}
                             setInputValue={setInputValueusdt}
@@ -835,7 +835,7 @@ function Staking() {
                             sliderValue={sliderValuebtc}
                             setSliderValue={setSliderValuebtc}
                             getWhaleHeadSrc={getWhaleHeadSrcbtc}
-                            availableBalance={btcWalletBalance !== "Error" && btcWalletBalance !== "Wallet not connected" && !isNaN(formatBigInt(btcWalletBalance))
+                            availableBalance={btcWalletBalance !== "Error" && btcWalletBalance !== "Connect Wallet" && !isNaN(formatBigInt(btcWalletBalance))
                                 ? formatBigInt(btcWalletBalance)
                                 : 0}
                             setInputValue={setInputValueusdt}
@@ -883,7 +883,7 @@ function Staking() {
                             sliderValue={sliderValueeth}
                             setSliderValue={setSliderValueeth}
                             getWhaleHeadSrc={getWhaleHeadSrceth}
-                            availableBalance={ethWalletBalance !== "Error" && ethWalletBalance !== "Wallet not connected" && !isNaN(formatBigInt(ethWalletBalance))
+                            availableBalance={ethWalletBalance !== "Error" && ethWalletBalance !== "Connect Wallet" && !isNaN(formatBigInt(ethWalletBalance))
                                 ? formatBigInt(ethWalletBalance)
                                 : 0}
                             setInputValue={setInputValueusdt}
@@ -1063,15 +1063,15 @@ function Staking() {
                             </div>
                         ) : (
                             <div className="flex flex-col items-center justify-center p-8">
-                                <h2 className="text-white text-3xl font-bold mb-4">NO STAKES YET</h2>
+                                <h2 className="text-white text-3xl font-bold mb-4">{t('nostakeyet')}</h2>
                                 <p className="text-white mb-4">
-                                    You don't have any stakes yet. Start your journey as a whale and make your first stake.
+                                    {t('nostakeline')}
                                 </p>
                                 <button
                                     onClick={scrollToStakingSection}
                                     className="bg-blue-500 hover:bg-blue-700 text-white p-3 rounded-md mt-4 transform hover:scale-105 transition-transform duration-300 focus:outline-none"
                                 >
-                                    GET STARTED
+                                    {t('getstarted')}
                                 </button>
                             </div>
                         )}
@@ -1096,15 +1096,15 @@ function Staking() {
                             </div>
                         ) : (
                             <div className="flex flex-col items-center justify-center p-8">
-                                <h2 className="text-white text-3xl font-bold mb-4">NO STAKES YET</h2>
+                                <h2 className="text-white text-3xl font-bold mb-4">{t('nostakeyet')}</h2>
                                 <p className="text-white mb-4">
-                                    You don't have any stakes yet. Start your journey as a whale and make your first stake.
+                                    {t('nostakeline')}
                                 </p>
                                 <button
                                     onClick={scrollToStakingSection}
                                     className="bg-blue-500 hover:bg-blue-700 text-white p-3 rounded-md mt-4 transform hover:scale-105 transition-transform duration-300 focus:outline-none"
                                 >
-                                    GET STARTED
+                                    {t('getstarted')}
                                 </button>
                             </div>
                         )}
