@@ -26,5 +26,6 @@ body {
     margin: 0;
     padding: 0;
     overflow-x: hidden;
-    text-shadow: 1px 1px 0px #787777;
+    text-shadow: 1.5px 1.5px 0px #787777;
+    letter-spacing: 2.5px;
 }

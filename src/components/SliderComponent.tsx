@@ -76,14 +76,14 @@ const WhaleSlider: React.FC<WhaleSliderProps> = ({ sliderValue, setSliderValue, 
             <div ref={sliderContainerRef} className="slider-container relative w-full h-[80px] mb-5">
 
                 {/* Whale Tail: Move the tail further back */}
-                <img src="./whale/tail.png" alt="Whale Tail" className="absolute bottom-0 w-[50px] h-[54.5px]" />
+                <img src="./whale/tail.png" alt="Whale Tail" className="absolute left-[-80px] bottom-0 w-[50px] h-[54.5px]" />
                 
                 {/* Whale Body: Stretches based on sliderValue */}
                 <div 
                     className="absolute bottom-0 h-[34px]" 
                     style={{
-                        left: '45px',
-                        width: `calc(${sliderValue}% - 90px)`,
+                        left: '-35px',
+                        width: `calc(${sliderValue}% - 0px)`,
                         backgroundImage: 'url(./whale/body.png)',
                         backgroundRepeat: 'repeat-x',
                         backgroundSize: 'contain'
@@ -95,13 +95,12 @@ const WhaleSlider: React.FC<WhaleSliderProps> = ({ sliderValue, setSliderValue, 
                     ref={whaleHeadRef} 
                     src={getWhaleHeadSrc()} 
                     alt="Whale Head" 
-                    className="absolute cursor-pointer ml-10 bottom-0 top-[43px] w-[45px] h-[44px]"
+                    className="absolute cursor-pointer ml-[-30px] bottom-0 top-[43px] w-[45px] h-[44px]"
                     style={{
                     left: ((windowWidth > 425) && (windowWidth < 768) && (sliderValue <= 25)) 
-                        ? `calc(${sliderValue}% - 90px)` 
-                        : (sliderValue <= 25 ? `0` : `calc(${sliderValue}% - 90px)`),
-                    // marginLeft: windowWidth === 1024 || sliderValue < 25 ? `45px` : `0`
-                    marginLeft: ((windowWidth >= 425)  && (sliderValue <= 25)) ? `` : `40px`,
+                        ? `calc(${sliderValue}% - 60px)` 
+                        : (sliderValue <= 0 ? `25` : `calc(${sliderValue}% - 60px)`),
+    
                       transform: isHovered ? 'scale(1.05)' : 'scale(1.01)', // Hover effect (scaling the whale head)
                         transition: 'transform 0.1s ease'
                 }} 

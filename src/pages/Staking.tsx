@@ -728,10 +728,10 @@ function Staking() {
                     </div>
                     
                     {/* Middle Section: Available Balance, Stake Input, and Slider */}
-                    <div className="w-full md:w-[30%] lg:pl-10 pt-16 pb-5">
+                    <div className="w-full md:w-[30%] lg:pl-10 pt-5 pb-5">
                         {/* Available in Wallet */}
                         <div className="flex justify-between items-center mb-5">
-                            <p><FontAwesomeIcon icon={faWallet} className="mr-2" />Available in Wallet:</p>
+                            <p><FontAwesomeIcon icon={faWallet} className="mr-2" />{t('available')}</p>
                             <div className="flex flex-col text-[25px] md:text-[30px]">
                                 <p>
                                     {usdtWalletBalance && usdtWalletBalance !== "Error" && usdtWalletBalance !== "Wallet not connected" && !isNaN(parseFloat(usdtWalletBalance))
@@ -896,74 +896,57 @@ function Staking() {
             </div>
 
             {/* Footer Section */}
-            <div className="flex flex-col my-10 w-full h-auto bg-black">
-                <img src={bg_whale} className="w-full h-auto" alt="" />
-                <p className="lg:pl-20 pl-10 mt-[-90px] lg:mt-[-200px] text-[18px] md:text-[40px] font-bold lg:text-[51px]">{t('crypto')}</p>
-            </div>
-            <div className="flex w-full bg-black mt-10 lg:mt-40 justify-between">
-                <a href="https://linktr.ee/WHALESTRATEGY" className="w-[45%] lg:w-[45%]">
-                    <img src={linktree} alt="" className="w-full h-auto cursor-pointer" />
-                </a>
-                <a href="https://discord.gg/xpkF6U9KJY" className="w-[45%] lg:w-[45%]">
-                    <img src={discord} alt="" className="w-full h-auto cursor-pointer" />
-                </a>
-            </div>
+            
             <div className="flex justify-between w-full mt-32" id="my-stakes">
                 <h1 className="flex md:text-[60px] text-[30px] font-bold">{t('staking')}</h1>
                 <p className="md:text-[20px] text-[13px] items-end flex">{t('risk')}</p>
             </div>
-            <div className="flex flex-wrap justify-center w-full gap-7">
-                {/* Conditionally Render No Stakes or Staking Details */}
-                {!hasStakes ? (
-                    <div className="w-full lg:w-[47%] flex flex-col items-center justify-center bg-black rounded-lg p-8">
-                        <h2 className="text-white text-3xl font-bold mb-4">NO STAKES YET</h2>
-                        <p className="text-white mb-4">
-                            You don't have any stakes yet. Start your journey as a whale and make your first stake.
-                        </p>
-                        <button
-                            onClick={scrollToStakingSection}
-                            className="bg-blue-500 hover:bg-blue-700 text-white p-3 rounded-md mt-4 transform hover:scale-105 transition-transform duration-300 focus:outline-none"
-                            >
-                            GET STARTED
-                        </button>
+            <div className="flex flex-wrap w-full lg:w-[47%] relative mt-10">
+                {/* Background Image */}
+                <img src={mystake} className="absolute w-full h-full" alt="" />
+
+                {/* Main Content with Token Information and Stake Details */}
+                <div className="p-2 m-2 md:m-10 w-full relative z-10 md:p-0 md:justify-between">
+                    {/* Token Name and Icon */}
+                    <div className="my-auto w-full md:w-[35%]">
+                        <div className="flex items-center mb-4">
+                            <img src={usdt} alt="USDT Icon" className="w-14 h-14 mr-4" />
+                            <p className="text-[35px] md:text-[30px] font-bold flex">USDT</p>
+                        </div>
                     </div>
-                ) : (
-                    <div className="flex flex-wrap w-full lg:w-[47%] relative mt-10">
-                        <img src={mystake} className="absolute w-full h-full" alt="" />
-                        <div className="p-2 m-2 md:m-10 w-full relative z-10 md:p-0 md:justify-between">
-                            <div className="my-auto w-full md:w-[35%]">
-                                <div className="flex items-center mb-4">
-                                    <img src={usdt} alt="" className="w-14 h-14 mr-4" />
-                                    <p className="text-[35px] md:text-[30px] font-bold flex">USDT</p>
+
+                    {/* Conditional Rendering for Stake Details or "No Stakes Yet" */}
+                    {hasStakes ? (
+                        // Stake Details View
+                        <div className="flex flex-col mt-4 space-y-2">
+                            {/* Total Staked */}
+                            <div className="flex justify-between items-center">
+                                <p><FontAwesomeIcon icon={faPiggyBank} className="mr-2" />{t('total')}</p>
+                                <div className="flex flex-col text-[25px] md:text-[30px]">
+                                    <p>{stakedAmount.USDT !== null ? formatBigInt(stakedAmount.USDT) : 'Loading...'}</p>
+                                    {usdtPrice !== null && stakedAmount.USDT !== null && (
+                                        <p className="text-sm">~${formatBigInt((stakedAmount.USDT * usdtPrice))} USD</p>
+                                    )}
                                 </div>
                             </div>
-                            <div className="flex flex-col mt-4 space-y-2">
-                                {/* Total Staked */}
-                                <div className="flex justify-between items-center">
-                                    <p><FontAwesomeIcon icon={faPiggyBank} className="mr-2" />{t('total')}</p>
-                                    <div className="flex flex-col text-[25px] md:text-[30px]">
-                                        <p>{stakedAmount.USDT !== null ? formatBigInt(stakedAmount.USDT) : 'Loading...'}</p>
-                                        {usdtPrice !== null && stakedAmount.USDT !== null && (
-                                            <p className="text-sm">~${formatBigInt((stakedAmount.USDT * usdtPrice))} USD</p>
-                                        )}
-                                    </div>
+                            {/* Available in Wallet */}
+                            <div className="flex justify-between items-center">
+                                <p><FontAwesomeIcon icon={faWallet} className="mr-2" />{t('available')}</p>
+                                <div className="flex flex-col text-[25px] md:text-[30px]">
+                                    <p>
+                                        {usdtWalletBalance && !isNaN(parseFloat(usdtWalletBalance))
+                                            ? parseFloat(usdtWalletBalance).toFixed(2)
+                                            : 'Loading...'}
+                                    </p>
+                                    {usdtPrice !== null && usdtWalletBalance && !isNaN(parseFloat(usdtWalletBalance)) && (
+                                        <p className="text-sm text-right">~${(parseFloat(usdtWalletBalance) * usdtPrice).toFixed(2)} USD</p>
+                                    )}
                                 </div>
-                                {/* Available in Wallet */}
-                                <div className="flex justify-between items-center">
-                                    <p><FontAwesomeIcon icon={faWallet} className="mr-2" />{t('available')}</p>
-                                    <div className="flex flex-col text-[25px] md:text-[30px]">
-                                        <p>
-                                            {usdtWalletBalance && !isNaN(parseFloat(usdtWalletBalance))
-                                                ? parseFloat(usdtWalletBalance).toFixed(2)
-                                                : 'Loading...'}
-                                        </p>
-                                        {usdtPrice !== null && usdtWalletBalance && !isNaN(parseFloat(usdtWalletBalance)) && (
-                                            <p className="text-sm text-right">~${(parseFloat(usdtWalletBalance) * usdtPrice).toFixed(2)} USD</p>
-                                        )}
-                                    </div>
-                                </div>
-                                <div className="flex justify-between items-center">
-                                    <p><FontAwesomeIcon icon={faCalendarCheck} className="mr-2" />Staked On:</p>
+                            </div>
+                            {/* Other Stake Information like Stake On, Unlock In, APR, Earned Rewards, etc. */}
+                            {/* Your existing code for the rest of the details goes here */}
+                            <div className="flex justify-between items-center">
+                                    <p><FontAwesomeIcon icon={faCalendarCheck} className="mr-2" />{t('Stakeon')}</p>
                                     <div className="flex flex-col text-[25px] md:text-[30px] loader">
                                         {stakedOn.USDT ? (
                                           <>
@@ -976,7 +959,7 @@ function Staking() {
                                     </div>
                                 </div>
                                 <div className="flex justify-between items-center">
-                                    <p><FontAwesomeIcon icon={faLockOpen} className="mr-2" />Unlock In:</p>
+                                    <p><FontAwesomeIcon icon={faLockOpen} className="mr-2" />{t('unlockin')}</p>
                                     <div className="flex flex-col text-[25px] md:text-[30px] loader">
                                         {stakeEnd.USDT && stakedOn.USDT ? (
                                             <>
@@ -997,20 +980,12 @@ function Staking() {
                                 <div className="flex justify-between items-center">
                                   <p><FontAwesomeIcon icon={faPercentage} className="mr-2" />APR:</p>
                                   <p className="text-[25px] md:text-[30px] loader text-green-500" id="apr-tooltip">
-                                    ~{apr} <i className="fas fa-info-circle ml-2"></i>
+                                    ~{apr}% <i className="fas fa-info-circle ml-2"></i>
                                   </p>
                                   <ReactTooltip anchorId="apr-tooltip" place="top" content="This is the annual percentage rate (APR) which determines the yield for your staked tokens." />
                                 </div>
                                 <div className="flex justify-between items-center">
-                                    <p><FontAwesomeIcon icon={faCoins} className="mr-2" />Current Rewards:</p>
-                                    <p className="text-[25px] md:text-[30px] loader">
-                                        {stakeRewards.USDT !== null && !isNaN(stakeRewards.USDT)
-                                            ? `${formatBigInt(stakeRewards.USDT)} USDT`
-                                            : 'Loading...'}
-                                    </p>
-                                </div>
-                                <div className="flex justify-between items-center">
-                                    <p><FontAwesomeIcon icon={faAward} className="mr-2" />Earned Rewards:</p>
+                                    <p><FontAwesomeIcon icon={faAward} className="mr-2" />{t('earnsofar')}</p>
                                     <div className="flex flex-col text-[25px] md:text-[30px] loader">
                                         {earnedRewards.USDT !== null && !isNaN(earnedRewards.USDT) && stakedAmount.USDT !== null ? (
                                             <>
@@ -1025,6 +1000,15 @@ function Staking() {
                                         )}
                                     </div>
                                 </div>
+                                <div className="flex justify-between items-center">
+                                    <p><FontAwesomeIcon icon={faCoins} className="mr-2" />{t('totalreward')}</p>
+                                    <p className="text-[25px] md:text-[30px] loader">
+                                        {stakeRewards.USDT !== null && !isNaN(stakeRewards.USDT)
+                                            ? `${formatBigInt(stakeRewards.USDT)} USDT`
+                                            : 'Loading...'}
+                                    </p>
+                                </div>
+                                
 
 
                                 
@@ -1037,18 +1021,110 @@ function Staking() {
                                         Unlock
                                     </button>
                                 </div>
-                            </div>
                         </div>
-                    </div>
-                )}
-
-                
-
-
-
-                
-
+                    ) : (
+                        // "No Stakes Yet" View
+                        <div className="flex flex-col items-center justify-center p-8">
+                            <h2 className="text-white text-3xl font-bold mb-4">{t('nostakeyet')}</h2>
+                            <p className="text-white mb-4">
+                                {t('nostakeline')}
+                            </p>
+                            <button
+                                onClick={scrollToStakingSection}
+                                className="bg-blue-500 hover:bg-blue-700 text-white p-3 rounded-md mt-4 transform hover:scale-105 transition-transform duration-300 focus:outline-none"
+                            >
+                                {t('getstarted')}
+                            </button>
+                        </div>
+                    )}
                 </div>
+            </div>
+
+
+                
+
+
+
+                {/* BTC Section */}
+                <div className="flex flex-wrap w-full lg:w-[47%] relative mt-10">
+                    <img src={mystake} className="absolute w-full h-full" alt="" />
+                    <div className="p-2 m-2 md:m-10 w-full relative z-10 md:p-0 md:justify-between">
+                        <div className="my-autow-full md:w-[35%] ">
+                            <div className="flex items-center">
+                                <img src={btc} alt="" className="w-14 h-14 mr-4" />
+                                <p className="text-[35px] md:text-[30px] font-bold flex">Bitcoin</p>
+                            </div>
+
+                        </div>
+                        {hasBTCStake ? (
+                            <div className="my-auto w-full md:w-[35%]">
+                                {/* BTC Stake Details */}
+                                {/* Your existing BTC details code here */}
+                            </div>
+                        ) : (
+                            <div className="flex flex-col items-center justify-center p-8">
+                                <h2 className="text-white text-3xl font-bold mb-4">NO STAKES YET</h2>
+                                <p className="text-white mb-4">
+                                    You don't have any stakes yet. Start your journey as a whale and make your first stake.
+                                </p>
+                                <button
+                                    onClick={scrollToStakingSection}
+                                    className="bg-blue-500 hover:bg-blue-700 text-white p-3 rounded-md mt-4 transform hover:scale-105 transition-transform duration-300 focus:outline-none"
+                                >
+                                    GET STARTED
+                                </button>
+                            </div>
+                        )}
+
+                    </div>
+                </div>
+                {/* ETH Section */}
+                <div className="flex flex-wrap w-full lg:w-[47%] relative mt-10">
+                    <img src={mystake} className="absolute w-full h-full" alt="" />
+                    <div className="p-2 m-2 md:m-10 w-full relative z-10 md:p-0 md:justify-between">
+                        <div className="my-autow-full md:w-[35%] ">
+                            <div className="flex items-center">
+                                <img src={eth} alt="" className="w-14 h-14 mr-4" />
+                                <p className="text-[35px] md:text-[30px] font-bold flex">Ethereum</p>
+                            </div>
+
+                        </div>
+                        {hasETHStake ? (
+                            <div className="my-auto w-full md:w-[35%]">
+                                {/* ETH Stake Details */}
+                                {/* Your existing ETH details code here */}
+                            </div>
+                        ) : (
+                            <div className="flex flex-col items-center justify-center p-8">
+                                <h2 className="text-white text-3xl font-bold mb-4">NO STAKES YET</h2>
+                                <p className="text-white mb-4">
+                                    You don't have any stakes yet. Start your journey as a whale and make your first stake.
+                                </p>
+                                <button
+                                    onClick={scrollToStakingSection}
+                                    className="bg-blue-500 hover:bg-blue-700 text-white p-3 rounded-md mt-4 transform hover:scale-105 transition-transform duration-300 focus:outline-none"
+                                >
+                                    GET STARTED
+                                </button>
+                            </div>
+                        )}
+
+                    </div>
+                </div>
+                <div className="flex flex-col my-10 w-full h-auto bg-black">
+                    <img src={bg_whale} className="w-full h-auto" alt="" />
+                    <p className="lg:pl-20 pl-10 mt-[-90px] lg:mt-[-200px] text-[18px] md:text-[40px] font-bold lg:text-[51px]">{t('crypto')}</p>
+                </div>
+                <div className="flex w-full bg-black mt-10 lg:mt-40 justify-between">
+                    <a href="https://linktr.ee/WHALESTRATEGY" className="w-[45%] lg:w-[45%]">
+                        <img src={linktree} alt="" className="w-full h-auto cursor-pointer" />
+                    </a>
+                    <a href="https://discord.gg/xpkF6U9KJY" className="w-[45%] lg:w-[45%]">
+                        <img src={discord} alt="" className="w-full h-auto cursor-pointer" />
+                    </a>
+                </div>
+                
+                
                 <div className="w-full h-40"></div>
         </div>
     );
