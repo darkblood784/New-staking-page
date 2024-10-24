@@ -57,19 +57,7 @@ const contractAddress = import.meta.env.VITE_CONTRACT_ADDRESS;
 const usdtAddress = import.meta.env.VITE_USDT_ADDRESS;
 const wbtcAddress = import.meta.env.VITE_WBTC_ADDRESS;
 const wethAddress = import.meta.env.VITE_WETH_ADDRESS;
-
-const erc20ABI = [
-    {
-      constant: true,
-      inputs: [{ name: "_owner", type: "address" }],
-      name: "balanceOf",
-      outputs: [{ name: "balance", type: "uint256" }],
-      payable: false,
-      stateMutability: "view",
-      type: "function",
-    },
-  ];
-  
+const erc20ABI = JSON.parse(import.meta.env.erc20ABI); // Assuming the ABI is stored as a JSON string
 
 
 
