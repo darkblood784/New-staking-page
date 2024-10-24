@@ -105,7 +105,7 @@ const WhaleSlider: React.FC<WhaleSliderProps> = ({
                 case 'body':
                     return '10px'; // Body closer for mobile
                 case 'head':
-                    return `calc(${sliderValue}% - [-30px])`; // Head adjusted for smaller screen
+                    return `calc(${sliderValue}% - 30px)`; // Head adjusted for smaller screen
                 default:
                     return '0';
             }
