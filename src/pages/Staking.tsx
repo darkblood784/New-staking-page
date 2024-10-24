@@ -144,8 +144,8 @@ function Staking() {
 
 
     // Function to format BigInt values for ERC20 tokens with 18 decimals
-    const formatBigInt = (value: any, decimals = 2) => {
-        if (!value) return "0.00";
+    const formatBigInt = (value: any, decimals = 4) => {
+        if (!value) return "0.0000";
   
         try {
           // Create a BigNumber from the value
@@ -161,6 +161,71 @@ function Staking() {
         return value.toString();
         }
     };
+
+    // Function to calculate daily profit
+    const calculateDailyProfit = () => {
+        if (!hasStakes) {
+            return 0; // No stakes, so no profit
+        }
+
+        let totalDailyProfit = 0;
+
+        // Iterate over each staked token and calculate the daily profit
+        ['USDT', 'BTC', 'ETH'].forEach((token) => {
+            if (stakedAmount[token] && stakedAmount[token] > 0) {
+                // Calculate APR for the specific token
+                const apr = token === "USDT" ? 15 : token === "BTC" ? 24 : 36;
+
+                // Convert APR to daily rate (APR is annual, so divide by 365)
+                const dailyRate = apr / 100 / 365;
+
+                // Calculate profit earned for the previous day
+                const dailyProfit = stakedAmount[token] * dailyRate;
+
+                // Accumulate the total daily profit for all staked tokens
+                totalDailyProfit += dailyProfit;
+            }
+        });
+
+    // Return total profit rounded to 2 decimal places
+    return totalDailyProfit.toFixed(2);
+};
+
+
+    useEffect(() => {
+        if (isConnected && address) {
+            // Check if the user has an active stake and if they are logging in after 12:00 AM
+            const lastPopupDate = localStorage.getItem('lastPopupDate');
+            const today = new Date().toISOString().slice(0, 10); // Get today's date in YYYY-MM-DD format
+
+            if (lastPopupDate !== today) {
+                // Update local storage to today's date
+                localStorage.setItem('lastPopupDate', today);
+
+                if (hasStakes) {
+                    // Calculate the previous day's profit
+                    const profit = calculateDailyProfit();
+
+                    Swal.fire({
+                        title: 'Daily Profit Report',
+                        text: `You made a profit of ${profit} USDT yesterday!`,
+                        icon: 'info',
+                        confirmButtonText: 'OK',
+                    });
+                } else {
+                    // Show popup indicating no stakes yet
+                    Swal.fire({
+                        title: 'No Stakes Yet',
+                        text: 'You currently have no active stakes. Start staking to earn rewards!',
+                        icon: 'info',
+                        confirmButtonText: 'OK',
+                    });
+                }
+            }
+        }
+    }, [isConnected, address, hasStakes]);
+
+    
     
     const [selectedToken, setSelectedToken] = useState<string>('USDT');
 
@@ -425,12 +490,12 @@ function Staking() {
 
 
     useEffect(() => {
-        if (isConnected && web3 && address) {
+        if (!isConnected && !web3 && !address) {
           const interval = setInterval(() => {
             console.log("Polling for updated wallet balance and staking information...");
             fetchWalletBalance();
             fetchStakeInfo();
-          }, 5000); // Poll every 10 seconds
+          }, 1000); // Poll every 10 seconds
       
           return () => clearInterval(interval); // Clean up on unmount
         }
