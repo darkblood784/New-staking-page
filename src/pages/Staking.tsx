@@ -259,42 +259,44 @@ function Staking() {
         setHasStakes(hasStakeValue);
     }, [hasUSDTStake, hasBTCStake, hasETHStake]);
 
-    // Fetch wallet balance function to be called in useEffect
-    useEffect(() => {
-        const fetchWalletBalance = async () => {
-            if (web3 && address && isConnected) {
-                try {
-                    // USDT Balance
-                    const usdtContract = new web3.eth.Contract(erc20ABI, usdtAddress);
-                    const usdtBalance: string = await usdtContract.methods.balanceOf(address).call();
-                    setUsdtWalletBalance(web3.utils.fromWei(usdtBalance, 'ether'));
-    
-                    // WBTC Balance
-                    const btcContract = new web3.eth.Contract(erc20ABI, wbtcAddress);
-                    const btcBalance: string = await btcContract.methods.balanceOf(address).call();
-                    setBtcWalletBalance(web3.utils.fromWei(btcBalance, 'ether'));
-    
-                    // WETH Balance
-                    const ethContract = new web3.eth.Contract(erc20ABI, wethAddress);
-                    const ethBalance: string = await ethContract.methods.balanceOf(address).call();
-                    setEthWalletBalance(web3.utils.fromWei(ethBalance, 'ether'));
-                } catch (error) {
-                    console.error("Error fetching balances:", error);
-                    setUsdtWalletBalance("Error");
-                    setBtcWalletBalance("Error");
-                    setEthWalletBalance("Error");
-                }
-            } else {
-                setUsdtWalletBalance("Connect Wallet");
-                setBtcWalletBalance("Connect Wallet");
-                setEthWalletBalance("Connect Wallet");
+    // Fetch wallet balance function to be used globally
+    const fetchWalletBalance = async () => {
+        if (web3 && address && isConnected) {
+            try {
+                // USDT Balance
+                const usdtContract = new web3.eth.Contract(erc20ABI, usdtAddress);
+                const usdtBalance: string = await usdtContract.methods.balanceOf(address).call();
+                setUsdtWalletBalance(web3.utils.fromWei(usdtBalance, 'ether'));
+
+                // WBTC Balance
+                const btcContract = new web3.eth.Contract(erc20ABI, wbtcAddress);
+                const btcBalance: string = await btcContract.methods.balanceOf(address).call();
+                setBtcWalletBalance(web3.utils.fromWei(btcBalance, 'ether'));
+
+                // WETH Balance
+                const ethContract = new web3.eth.Contract(erc20ABI, wethAddress);
+                const ethBalance: string = await ethContract.methods.balanceOf(address).call();
+                setEthWalletBalance(web3.utils.fromWei(ethBalance, 'ether'));
+            } catch (error) {
+                console.error("Error fetching balances:", error);
+                setUsdtWalletBalance("Error");
+                setBtcWalletBalance("Error");
+                setEthWalletBalance("Error");
             }
-        };
-    
+        } else {
+            setUsdtWalletBalance("Connect Wallet");
+            setBtcWalletBalance("Connect Wallet");
+            setEthWalletBalance("Connect Wallet");
+        }
+    };
+
+    // UseEffect to call fetchWalletBalance when needed
+    useEffect(() => {
         if (isConnected) {
             fetchWalletBalance();
         }
     }, [web3, address, isConnected]);
+
     
 
     
@@ -402,15 +404,38 @@ function Staking() {
         }
     };
 
+    useEffect(() => {
+        const fetchAllData = async () => {
+            if (isConnected && web3 && address) {
+                console.log("Polling for latest wallet balance and staking information...");
+                await fetchWalletBalance();
+                await fetchStakeInfo();
+            }
+        };
+    
+        fetchAllData(); // Fetch data initially when conditions are met.
+    
+        const interval = setInterval(() => {
+            fetchAllData(); // Poll every 10 seconds
+        }, 10000);
+    
+        return () => clearInterval(interval); // Clean up on unmount
+    }, [isConnected, web3, address]);
     
 
-    // Effect to fetch staking information when wallet connects
+
     useEffect(() => {
-        if (isConnected && web3 && contract && address) {
-            console.log("All dependencies are ready, fetching stake info...");
+        if (isConnected && web3 && address) {
+          const interval = setInterval(() => {
+            console.log("Polling for updated wallet balance and staking information...");
+            fetchWalletBalance();
             fetchStakeInfo();
+          }, 10000); // Poll every 10 seconds
+      
+          return () => clearInterval(interval); // Clean up on unmount
         }
-    }, [web3, contract, address, isConnected]);
+      }, [isConnected, web3, address]);
+      
         
 
     // Function to scroll to the staking section
@@ -535,6 +560,7 @@ function Staking() {
 
                     // Fetch updated staking information
                     await fetchStakeInfo();
+                    await fetchWalletBalance();
 
                 });
     
