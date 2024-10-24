@@ -86,6 +86,8 @@ function Staking() {
     const [sliderValueeth, setSliderValueeth] = useState<number>(0);
 
     const [usdtPrice, setUsdtPrice] = useState<number | null>(null);
+    const [btcPrice, setBtcPrice] = useState<number | null>(null);
+    const [ethPrice, setEthPrice] = useState<number | null>(null);
 
     const [usdtWalletBalance, setUsdtWalletBalance] = useState<string | null>(null);
     const [btcWalletBalance, setBtcWalletBalance] = useState<string | null>(null);
@@ -188,20 +190,26 @@ function Staking() {
 
 
     useEffect(() => {
-        // Fetch USDT price from an API like CoinGecko
-        const fetchUSDTPrice = async () => {
+        // Fetch prices from CoinGecko API for USDT, BTC, and ETH
+        const fetchPrices = async () => {
             try {
-                const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=tether&vs_currencies=usd');
+                const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=tether,bitcoin,ethereum&vs_currencies=usd');
                 const data = await response.json();
                 if (data.tether) {
                     setUsdtPrice(data.tether.usd);
                 }
+                if (data.bitcoin) {
+                    setBtcPrice(data.bitcoin.usd);
+                }
+                if (data.ethereum) {
+                    setEthPrice(data.ethereum.usd);
+                }
             } catch (error) {
-                console.error("Error fetching USDT price:", error);
+                console.error("Error fetching token prices:", error);
             }
         };
-    
-        fetchUSDTPrice();
+
+        fetchPrices();
     }, []);
 
     useEffect(() => {
@@ -818,12 +826,37 @@ function Staking() {
                         </div>
                         <DurationSelector durations={durationOptions} setDuration={setBtcDuration} />
                     </div>
+                    {/* Middle Section: Available Balance, Stake Input, and Slider */}
                     <div className="w-full md:w-[30%] lg:pl-10 pt-16 pb-5">
-                        <div className="flex justify-between ">
-                            <p className="text-[25px]">{t('stake')}</p>
+                        {/* Available in Wallet */}
+                        <div className="flex justify-between items-center mb-5">
+                            <p><FontAwesomeIcon icon={faWallet} className="mr-2" />{t('available')}</p>
+                            <div className="flex flex-col text-[20px] md:text-[25px]">
+                                <p>
+                                    {btcWalletBalance && btcWalletBalance !== "Error" && btcWalletBalance !== "Connect Wallet" && !isNaN(parseFloat(btcWalletBalance))
+                                        ? parseFloat(btcWalletBalance).toFixed(2)
+                                        : btcWalletBalance}
+                                </p>
+                                {btcPrice !== null && btcWalletBalance && btcWalletBalance !== "Error" && btcWalletBalance !== "Connect Wallet" && !isNaN(parseFloat(btcWalletBalance)) && (
+                                    <p className="text-sm text-right">~${(parseFloat(btcWalletBalance) * btcPrice).toFixed(2)} USD</p>
+                                )}
+                            </div>
+                        </div>
+                        {/* Stake Input */}
+                        <div className="flex justify-between items-center">
+                            <p className="text-[25px] md:text-[20px]">{t('stake')}</p>
                             <PrimeInput
                                 value={inputValuebtc}
-                                setValue={setInputValuebtc}
+                                setValue={(val: any) => {
+                                    setInputValuebtc(val);
+
+                                    // Update the slider value based on the input value
+                                    if (btcWalletBalance && btcWalletBalance !== "Error" && btcWalletBalance !== "Connect Wallet" && !isNaN(parseFloat(btcWalletBalance))) {
+                                        const balance = parseFloat(btcWalletBalance);
+                                        const newSliderValue = Math.min(100, (val / balance) * 100);
+                                        setSliderValuebtc(newSliderValue);
+                                    }
+                                }}
                                 validatePrime={validatePrime}
                             />
                         </div>
@@ -831,14 +864,21 @@ function Staking() {
                             <p className="text-[25px]">{btcduration ? btcduration : "0 Days"}</p>
                             <div className="text-2xl mt-2.5">{`${Math.round(sliderValuebtc)}%`}</div>
                         </div>
+                        {/* Whale Slider */}
                         <WhaleSlider
                             sliderValue={sliderValuebtc}
-                            setSliderValue={setSliderValuebtc}
+                            setSliderValue={(val) => {
+                                setSliderValuebtc(val);
+                                if (btcWalletBalance && btcWalletBalance !== "Error" && btcWalletBalance !== "Connect Wallet" && !isNaN(parseFloat(btcWalletBalance))) {
+                                    const calculatedValue = ((parseFloat(btcWalletBalance) * val) / 100).toFixed(2);
+                                    setInputValuebtc(calculatedValue);
+                                }
+                            }}
                             getWhaleHeadSrc={getWhaleHeadSrcbtc}
                             availableBalance={btcWalletBalance !== "Error" && btcWalletBalance !== "Connect Wallet" && !isNaN(formatBigInt(btcWalletBalance))
                                 ? formatBigInt(btcWalletBalance)
                                 : 0}
-                            setInputValue={setInputValueusdt}
+                            setInputValue={setInputValuebtc}
                         />
                     </div>
                     <div className="w-full h-20 md:w-1/4 md:h-full opacity-50 bg-black rounded-2xl flex justify-center items-center cursor-pointer">
@@ -866,27 +906,57 @@ function Staking() {
 
                     </div>
                     <div className="w-full md:w-[30%] lg:pl-10 pt-16 pb-5">
-                        <div className="flex justify-between">
-                            <p className="text-[25px] md">{t('stake')}</p>
+                        {/* Available in Wallet */}
+                        <div className="flex justify-between items-center mb-5">
+                            <p><FontAwesomeIcon icon={faWallet} className="mr-2" />{t('available')}</p>
+                            <div className="flex flex-col text-[20px] md:text-[25px]">
+                                <p>
+                                    {ethWalletBalance && ethWalletBalance !== "Error" && ethWalletBalance !== "Connect Wallet" && !isNaN(parseFloat(ethWalletBalance))
+                                        ? parseFloat(ethWalletBalance).toFixed(2)
+                                        : ethWalletBalance}
+                                </p>
+                                {ethPrice !== null && ethWalletBalance && ethWalletBalance !== "Error" && ethWalletBalance !== "Connect Wallet" && !isNaN(parseFloat(ethWalletBalance)) && (
+                                    <p className="text-sm text-right">~${(parseFloat(ethWalletBalance) * ethPrice).toFixed(2)} USD</p>
+                                )}
+                            </div>
+                        </div>
+                        {/* Stake Input */}
+                        <div className="flex justify-between items-center">
+                            <p className="text-[25px] md:text-[20px]">{t('stake')}</p>
                             <PrimeInput
                                 value={inputValueeth}
-                                setValue={setInputValueeth}
-                                validatePrime={validatePrime}
+                                setValue={(val: any) => {
+                                    setInputValueeth(val);
 
+                                    // Update the slider value based on the input value
+                                    if (ethWalletBalance && ethWalletBalance !== "Error" && ethWalletBalance !== "Connect Wallet" && !isNaN(parseFloat(ethWalletBalance))) {
+                                        const balance = parseFloat(ethWalletBalance);
+                                        const newSliderValue = Math.min(100, (val / balance) * 100);
+                                        setSliderValueeth(newSliderValue);
+                                    }
+                                }}
+                                validatePrime={validatePrime}
                             />
                         </div>
                         <div className="flex w-full justify-between">
-                            <p className="text-[25px] md">{ethduration ? ethduration : "0 Days"}</p>
+                            <p className="text-[25px]">{ethduration ? ethduration : "0 Days"}</p>
                             <div className="text-2xl mt-2.5">{`${Math.round(sliderValueeth)}%`}</div>
                         </div>
+                        {/* Whale Slider */}
                         <WhaleSlider
                             sliderValue={sliderValueeth}
-                            setSliderValue={setSliderValueeth}
+                            setSliderValue={(val) => {
+                                setSliderValueeth(val);
+                                if (ethWalletBalance && ethWalletBalance !== "Error" && ethWalletBalance !== "Connect Wallet" && !isNaN(parseFloat(ethWalletBalance))) {
+                                    const calculatedValue = ((parseFloat(ethWalletBalance) * val) / 100).toFixed(2);
+                                    setInputValueeth(calculatedValue);
+                                }
+                            }}
                             getWhaleHeadSrc={getWhaleHeadSrceth}
                             availableBalance={ethWalletBalance !== "Error" && ethWalletBalance !== "Connect Wallet" && !isNaN(formatBigInt(ethWalletBalance))
                                 ? formatBigInt(ethWalletBalance)
                                 : 0}
-                            setInputValue={setInputValueusdt}
+                            setInputValue={setInputValueeth}
                         />
                     </div>
                     <div className="w-full h-20 md:w-1/4 md:h-full opacity-50 bg-black rounded-2xl flex justify-center items-center cursor-pointer">
