@@ -392,7 +392,7 @@ function Staking() {
                 console.error("Error fetching staking information:", error);
                 Swal.fire({
                     title: 'Data Fetch Error',
-                    text: 'Unable to retrieve staking information. Please try again later.',
+                    text: 'Unable to retrieve staking information. Please check your Chain or Network try again.',
                     icon: 'error',
                     confirmButtonText: 'OK'
                 });
@@ -457,23 +457,12 @@ function Staking() {
 
     const handleStakeUSDT = async () => {
         if (!web3 || !contract || !address) {
+            
             Swal.fire({
-              title: 'Oops!',
-              text: 'Please connect your wallet first!',
-              icon: 'warning',
-              showCancelButton: true,
-              showConfirmButton: false,
-              html: `<div id="connectWalletButtonContainer"></div>`,
-              didOpen: () => {
-                const container = document.getElementById('connectWalletButtonContainer');
-                if (container) {
-                  const root = ReactDOM.createRoot(container);
-                  root.render(<ConnectButton />);
-                }
-              },
-              customClass: {
-                popup: 'custom-swal-popup'
-              }
+                title: 'Oops!',
+                text: 'Please connect your wallet first!',
+                icon: 'warning',
+                confirmButtonText: 'OK'
             });
             return;
           }
@@ -1182,92 +1171,7 @@ function Staking() {
                     </a>
                 </div>
                 
-                {/* Conditionally Render No Stakes Yet or Show My Stakes Button */}
-                {/* Unified Section - Token Selection & Details */}
-                <div className="w-full lg:w-[80%] flex flex-col items-center rounded-lg p-8">
                 
-                    {/* Token Selection Section */}
-                    <div className="flex justify-center space-x-4 mb-8">
-                        {tokens.map((token) => (
-                            <div
-                                key={token.name}
-                                className={`flex flex-col items-center cursor-pointer p-3 rounded-lg transition-all duration-300 ${
-                                    selectedToken === token.name ? 'bg-gray-600' : 'bg-gray-700 hover:bg-gray-600'
-                                }`}
-                                onClick={() => handleSelectToken(token.name)}
-                            >
-                                <img src={token.icon} alt={token.name} className="w-14 h-14 mb-2" />
-                                <h2 className="text-xl font-bold">{token.name}</h2>
-                            </div>
-                        ))}
-                    </div>
-
-                    {/* Conditionally Render No Stakes Yet or Staking Details */}
-                    {!hasStakes ? (
-                        <div className="w-full flex flex-col items-center justify-center bg-black rounded-lg p-8">
-                            <h2 className="text-white text-3xl font-bold mb-4">{t('nostakeyet')}</h2>
-                            <p className="text-white mb-4">
-                                {t('nostakeline')}
-                            </p>
-                            <button
-                                onClick={scrollToStakingSection}
-                                className="bg-blue-500 hover:bg-blue-700 text-white p-3 rounded-md mt-4 transform hover:scale-105 transition-transform duration-300 focus:outline-none"
-                            >
-                                {t('getstarted')}
-                            </button>
-                        </div>
-                    ) : (
-                        // Staking Details Section
-                        <div className="w-full bg-gray-700 rounded-lg p-8 mt-4">
-                            <div className="flex flex-col space-y-4 text-left">
-                                <h3 className="text-2xl font-bold mb-4">{selectedToken} Staking Details</h3>
-
-                                {/* Total Staked */}
-                                <div className="flex justify-between items-center">
-                                    <p><FontAwesomeIcon icon={faPiggyBank} className="mr-2" />Total Staked:</p>
-                                    <p className="text-[25px]">Loading...</p>
-                                </div>
-
-                                {/* Available in Wallet */}
-                                <div className="flex justify-between items-center">
-                                    <p><FontAwesomeIcon icon={faWallet} className="mr-2" />{t('available')}</p>
-                                    <p className="text-[25px]">Loading...</p>
-                                </div>
-
-                                {/* Staked On */}
-                                <div className="flex justify-between items-center">
-                                    <p><FontAwesomeIcon icon={faCalendarCheck} className="mr-2" />Staked On:</p>
-                                    <p className="text-[25px]">Loading...</p>
-                                </div>
-
-                                {/* Unlock In */}
-                                <div className="flex justify-between items-center">
-                                    <p><FontAwesomeIcon icon={faLockOpen} className="mr-2" />Unlock In:</p>
-                                    <p className="text-[25px]">Loading...</p>
-                                </div>
-
-                                {/* APR */}
-                                <div className="flex justify-between items-center">
-                                    <p><FontAwesomeIcon icon={faPercentage} className="mr-2" />APR:</p>
-                                    <p className="text-[25px] text-green-500">~15%</p>
-                                </div>
-
-                                {/* Current Rewards */}
-                                <div className="flex justify-between items-center">
-                                    <p><FontAwesomeIcon icon={faCoins} className="mr-2" />Current Rewards:</p>
-                                    <p className="text-[25px]">Loading...</p>
-                                </div>
-
-                                {/* Earned Rewards */}
-                                <div className="flex justify-between items-center">
-                                    <p><FontAwesomeIcon icon={faAward} className="mr-2" />Earned Rewards:</p>
-                                    <p className="text-[25px]">Loading...</p>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                </div>
                 <div className="w-full h-40"></div>
         </div>
     );
