@@ -310,6 +310,8 @@ function Staking() {
             setStakeEnd({ USDT: null, BTC: null, ETH: null });
             setStakedOn({ USDT: null, BTC: null, ETH: null });
             setUsdtWalletBalance(null); // Reset wallet balance when disconnected
+            setBtcWalletBalance(null);
+            setEthWalletBalance(null);
         }
     }, [isConnected]);
     
@@ -482,7 +484,7 @@ function Staking() {
     
         const interval = setInterval(() => {
             fetchAllData(); // Poll every 10 seconds
-        }, 10000);
+        }, 5000);
     
         return () => clearInterval(interval); // Clean up on unmount
     }, [isConnected, web3, address]);
@@ -495,7 +497,7 @@ function Staking() {
             console.log("Polling for updated wallet balance and staking information...");
             fetchWalletBalance();
             fetchStakeInfo();
-          }, 10000); // Poll every 10 seconds
+          }, 5000); // Poll every 10 seconds
       
           return () => clearInterval(interval); // Clean up on unmount
         }
