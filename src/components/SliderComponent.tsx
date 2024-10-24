@@ -101,9 +101,9 @@ const WhaleSlider: React.FC<WhaleSliderProps> = ({
             // Mobile screens
             switch (type) {
                 case 'tail':
-                    return '-30px'; // Tail closer for mobile
+                    return '-60px'; // Tail closer for mobile
                 case 'body':
-                    return '10px'; // Body closer for mobile
+                    return '-20px'; // Body closer for mobile
                 case 'head':
                     return `calc(${sliderValue}% - 30px)`; // Head adjusted for smaller screen
                 default:
@@ -164,7 +164,7 @@ const WhaleSlider: React.FC<WhaleSliderProps> = ({
                     ref={whaleHeadRef}
                     src={getWhaleHeadSrc()}
                     alt="Whale Head"
-                    className="absolute cursor-pointer bottom-0 top-[43px] w-[40px] h-[44px]"
+                    className="absolute cursor-pointer bottom-0 top-[43px] w-[60px] h-[44px]"
                     style={{
                         left: getConditionalPosition('head'), // Position the head with the slider
                         transform: isHovered ? 'scale(1.05)' : 'scale(1.01)', // Hover effect (scaling the whale head)
