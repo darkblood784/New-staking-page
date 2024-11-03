@@ -545,11 +545,11 @@ function Staking() {
     }, []);
     
 
+    
+    
 
-
-    const handleStakeUSDT = async () => {
+    const handleStakeUSDT = () => {
         if (!web3 || !contract || !address) {
-            
             Swal.fire({
                 title: 'Oops!',
                 text: 'Please connect your wallet first!',
@@ -557,36 +557,46 @@ function Staking() {
                 confirmButtonText: 'OK'
             });
             return;
-          }
+        }
     
+        // Validate input amount
+        if (!inputValueusdt || parseFloat(inputValueusdt) <= 0) {
+            Swal.fire({
+                title: 'Invalid Input',
+                text: 'Please enter a valid amount greater than zero to stake.',
+                icon: 'error',
+                confirmButtonText: 'OK'
+            });
+            return;
+        }
+    
+        // Validate duration selection
+        if (!usdtduration) {
+            Swal.fire({
+                title: 'Select Duration',
+                text: 'Please select a staking duration.',
+                icon: 'info',
+                confirmButtonText: 'OK'
+            });
+            return;
+        }
+    
+        // Confirm staking details
+        confirmStaking('USDT', inputValueusdt, usdtduration, executeStakeUSDT);
+    };
+    
+    // Create the actual execution function
+    const executeStakeUSDT = async () => {
+        if (!web3) {
+            console.error("Web3 is not initialized");
+            return;
+        }
         try {
-            // Validate input amount
-            if (!inputValueusdt || parseFloat(inputValueusdt) <= 0) {
-                Swal.fire({
-                    title: 'Invalid Input',
-                    text: 'Please enter a valid amount greater than zero to stake.',
-                    icon: 'error',
-                    confirmButtonText: 'OK'
-                });
-                return;
-            }
-    
-            // Validate duration selection
-            if (!usdtduration) {
-                Swal.fire({
-                    title: 'Select Duration',
-                    text: 'Please select a staking duration.',
-                    icon: 'info',
-                    confirmButtonText: 'OK'
-                });
-                return;
-            }
-    
             // Convert input value to Wei
             const amountToStake = web3.utils.toWei(inputValueusdt, "ether");
     
             // Step 1: Check allowance
-            const usdtContract = new web3.eth.Contract(usdtABI, usdtAddress);
+            const usdtContract = new web3.eth.Contract(erc20ABI, usdtAddress);
             const allowance = await usdtContract.methods.allowance(address, contractAddress).call();
     
             if (Number(allowance) < Number(amountToStake)) {
@@ -619,16 +629,14 @@ function Staking() {
                         confirmButtonText: 'OK'
                     });
     
-                    // Step 4: Clear input fields and update UI
                     // Clear input fields and update UI
                     setInputValueusdt('');
                     setSliderValueusdt(0);
                     setUsdtDuration('');
-
+    
                     // Fetch updated staking information
                     await fetchStakeInfo();
                     await fetchWalletBalance();
-
                 });
     
         } catch (error: any) {
@@ -651,6 +659,251 @@ function Staking() {
             }
         }
     };
+
+    const handleStakeBTC = () => {
+        if (!web3 || !contract || !address) {
+            Swal.fire({
+                title: 'Oops!',
+                text: 'Please connect your wallet first!',
+                icon: 'warning',
+                confirmButtonText: 'OK'
+            });
+            return;
+        }
+    
+        if (!inputValuebtc || parseFloat(inputValuebtc) <= 0) {
+            Swal.fire({
+                title: 'Invalid Input',
+                text: 'Please enter a valid amount greater than zero to stake.',
+                icon: 'error',
+                confirmButtonText: 'OK'
+            });
+            return;
+        }
+    
+        if (!btcduration) {
+            Swal.fire({
+                title: 'Select Duration',
+                text: 'Please select a staking duration.',
+                icon: 'info',
+                confirmButtonText: 'OK'
+            });
+            return;
+        }
+    
+        confirmStaking('BTC', inputValuebtc, btcduration, executeStakeBTC);
+    };
+
+    // Create the actual execution function for BTC
+    const executeStakeBTC = async () => {
+        if (!web3) {
+            console.error("Web3 is not initialized");
+            return;
+        }
+        try {
+            // Convert input value to Wei
+            const amountToStake = web3.utils.toWei(inputValuebtc, "ether");
+
+            // Step 1: Check allowance
+            const btcContract = new web3.eth.Contract(erc20ABI, wbtcAddress);
+            const allowance = await btcContract.methods.allowance(address, contractAddress).call();
+
+            if (Number(allowance) < Number(amountToStake)) {
+                // Approve the staking contract to transfer tokens on behalf of the user
+                await btcContract.methods
+                    .approve(contractAddress, web3.utils.toWei('1000000', 'ether')) // Approving a large amount
+                    .send({ from: address })
+                    .on('transactionHash', (hash) => {
+                        Swal.fire({
+                            title: 'Approval in Progress',
+                            text: `Transaction Hash: ${hash}`,
+                            icon: 'info',
+                            confirmButtonText: 'OK'
+                        });
+                    });
+            }
+
+            // Step 2: Stake the tokens after approval (or if already approved)
+            const durationInMonths = btcduration === '30 Days' ? 1 : btcduration === '6 Months' ? 6 : 12;
+            const gasLimit = 200000; // Set a reasonable gas limit
+            const gasPrice = web3.utils.toWei('6', 'gwei'); // Set gas price
+
+            await contract.methods.stake(wbtcAddress, durationInMonths, amountToStake)
+                .send({ from: address, gas: gasLimit, gasPrice: gasPrice })
+                .on('receipt', async () => {
+                    Swal.fire({
+                        title: 'Success!',
+                        text: 'Staked successfully!',
+                        icon: 'success',
+                        confirmButtonText: 'OK'
+                    });
+
+                    // Clear input fields and update UI
+                    setInputValuebtc('');
+                    setSliderValuebtc(0);
+                    setBtcDuration('');
+
+                    // Fetch updated staking information
+                    await fetchStakeInfo();
+                    await fetchWalletBalance();
+                });
+
+        } catch (error: any) {
+            console.error("Staking error:", error);
+
+            if (error.message.includes("User denied transaction")) {
+                Swal.fire({
+                    title: 'Transaction Denied',
+                    text: 'Transaction was denied by the user.',
+                    icon: 'warning',
+                    confirmButtonText: 'OK'
+                });
+            } else {
+                Swal.fire({
+                    title: 'Staking Failed',
+                    text: `Staking failed: ${error.message}`,
+                    icon: 'error',
+                    confirmButtonText: 'OK'
+                });
+            }
+        }
+    };
+
+    const handleStakeETH = () => {
+        if (!web3 || !contract || !address) {
+            Swal.fire({
+                title: 'Oops!',
+                text: 'Please connect your wallet first!',
+                icon: 'warning',
+                confirmButtonText: 'OK'
+            });
+            return;
+        }
+    
+        if (!inputValueeth || parseFloat(inputValueeth) <= 0) {
+            Swal.fire({
+                title: 'Invalid Input',
+                text: 'Please enter a valid amount greater than zero to stake.',
+                icon: 'error',
+                confirmButtonText: 'OK'
+            });
+            return;
+        }
+    
+        if (!ethduration) {
+            Swal.fire({
+                title: 'Select Duration',
+                text: 'Please select a staking duration.',
+                icon: 'info',
+                confirmButtonText: 'OK'
+            });
+            return;
+        }
+    
+        confirmStaking('ETH', inputValueeth, ethduration, executeStakeETH);
+    };
+
+    // Create the actual execution function for ETH
+    const executeStakeETH = async () => {
+        if (!web3) {
+            console.error("Web3 is not initialized");
+            return;
+        }
+        try {
+            // Convert input value to Wei
+            const amountToStake = web3.utils.toWei(inputValueeth, "ether");
+
+            // Step 1: Check allowance
+            const ethContract = new web3.eth.Contract(erc20ABI, wethAddress);
+            const allowance = await ethContract.methods.allowance(address, contractAddress).call();
+
+            if (Number(allowance) < Number(amountToStake)) {
+                // Approve the staking contract to transfer tokens on behalf of the user
+                await ethContract.methods
+                    .approve(contractAddress, web3.utils.toWei('1000000', 'ether')) // Approving a large amount
+                    .send({ from: address })
+                    .on('transactionHash', (hash) => {
+                        Swal.fire({
+                            title: 'Approval in Progress',
+                            text: `Transaction Hash: ${hash}`,
+                            icon: 'info',
+                            confirmButtonText: 'OK'
+                        });
+                    });
+            }
+
+            // Step 2: Stake the tokens after approval (or if already approved)
+            const durationInMonths = ethduration === '30 Days' ? 1 : ethduration === '6 Months' ? 6 : 12;
+            const gasLimit = 200000; // Set a reasonable gas limit
+            const gasPrice = web3.utils.toWei('6', 'gwei'); // Set gas price
+
+            await contract.methods.stake(wethAddress, durationInMonths, amountToStake)
+                .send({ from: address, gas: gasLimit, gasPrice: gasPrice })
+                .on('receipt', async () => {
+                    Swal.fire({
+                        title: 'Success!',
+                        text: 'Staked successfully!',
+                        icon: 'success',
+                        confirmButtonText: 'OK'
+                    });
+
+                    // Clear input fields and update UI
+                    setInputValueeth('');
+                    setSliderValueeth(0);
+                    setEthDuration('');
+
+                    // Fetch updated staking information
+                    await fetchStakeInfo();
+                    await fetchWalletBalance();
+                });
+
+        } catch (error: any) {
+            console.error("Staking error:", error);
+
+            if (error.message.includes("User denied transaction")) {
+                Swal.fire({
+                    title: 'Transaction Denied',
+                    text: 'Transaction was denied by the user.',
+                    icon: 'warning',
+                    confirmButtonText: 'OK'
+                });
+            } else {
+                Swal.fire({
+                    title: 'Staking Failed',
+                    text: `Staking failed: ${error.message}`,
+                    icon: 'error',
+                    confirmButtonText: 'OK'
+                });
+            }
+        }
+    };
+
+
+    
+    const confirmStaking = (
+        tokenName: string,
+        amount: string | number,
+        duration: string,
+        handleStake: () => Promise<void>
+    ) => {
+        Swal.fire({
+            title: `Confirm Staking ${tokenName}`,
+            html: `
+                <p>You are about to stake:</p>
+                <ul>
+                    <li><b>Token:</b> ${tokenName}</li>
+                    <li><b>Amount:</b> ${amount}</li>
+                    <li><b>Duration:</b> ${duration}</li>
+                </ul>
+            `,
+            showCancelButton: true,
+            confirmButtonText: 'Confirm',
+        }).then((result) => {
+            if (result.isConfirmed) {
+                handleStake();
+            }
+        });
+    };
     
 
 
@@ -666,13 +919,35 @@ function Staking() {
         }
     
         try {
+            // Fetch the stake information to check if it's an early unstake
+            const stakeInfo = await contract.methods.userStakeInfos(address, tokenAddress).call();
+            const currentTime = Math.floor(Date.now() / 1000); // Get the current time in seconds
+    
+            // Check if it's an early unstake
+            if (currentTime < stakeInfo.stakeEnd) {
+                // Show a confirmation dialog with the penalty warning
+                const result = await Swal.fire({
+                    title: 'Early Unstake Warning',
+                    html: 'You are attempting to unstake early.<br>A 6% penalty will be applied.<br>Do you wish to continue?',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Yes, Unstake',
+                    cancelButtonText: 'No, Cancel'
+                });
+                
+    
+                // If the user cancels, exit the function
+                if (!result.isConfirmed) {
+                    return;
+                }
+            }
+    
             // Define gas parameters
             const gasLimit = 200000; // Set a reasonable gas limit
             const gasPrice = web3.utils.toWei('20', 'gwei'); // Set the gas price to 20 Gwei
-
+    
             // Call the unstake function of the smart contract with gas settings
             await contract.methods.unstake(tokenAddress).send({ from: address, gas: gasLimit, gasPrice: gasPrice });
-
     
             Swal.fire({
                 title: 'Success!',
@@ -699,6 +974,7 @@ function Staking() {
             }
         }
     };
+    
 
   
 
@@ -951,8 +1227,14 @@ function Staking() {
                             setInputValue={setInputValuebtc}
                         />
                     </div>
-                    <div className="w-full h-20 md:w-1/4 md:h-full opacity-50 bg-black rounded-2xl flex justify-center items-center cursor-pointer">
-                        <p className="text-[35px] md:text-[30px] font-bold">{t('take')} <span className="ml-2">&#9660;</span></p>
+                    {/* Stake Button */}
+                    <div className="w-full h-20 md:w-1/4 md:h-full opacity-70 bg-black rounded-2xl flex justify-center items-center cursor-pointer">
+                        <button
+                            onClick={handleStakeBTC} 
+                            className="text-[35px] md:text-[30px] font-bold transform hover:scale-105 transition-transform duration-300 shadow-lg hover:shadow-xl active:scale-95 focus:outline-none text-white"
+                        >
+                            {t('take')} <span className="ml-2">&#9660;</span>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -1029,8 +1311,14 @@ function Staking() {
                             setInputValue={setInputValueeth}
                         />
                     </div>
-                    <div className="w-full h-20 md:w-1/4 md:h-full opacity-50 bg-black rounded-2xl flex justify-center items-center cursor-pointer">
-                        <p className="text-[35px] md:text-[30px] font-bold">{t('take')} <span className="ml-2">&#9660;</span></p>
+                    {/* Stake Button */}
+                    <div className="w-full h-20 md:w-1/4 md:h-full opacity-70 bg-black rounded-2xl flex justify-center items-center cursor-pointer">
+                        <button
+                            onClick={handleStakeETH} 
+                            className="text-[35px] md:text-[30px] font-bold transform hover:scale-105 transition-transform duration-300 shadow-lg hover:shadow-xl active:scale-95 focus:outline-none text-white"
+                        >
+                            {t('take')} <span className="ml-2">&#9660;</span>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -1056,26 +1344,27 @@ function Staking() {
                     </div>
 
                     {/* Conditional Rendering for Stake Details or "No Stakes Yet" */}
-                    {hasStakes ? (
+                    {formatBigInt(stakedAmount.USDT) > 0 ? (
                         // Stake Details View
-                        <div className="flex flex-col mt-4 space-y-2">
+                        <div className="flex flex-col mt-4 space-y-2 text-right">
                             {/* Total Staked */}
                             <div className="flex justify-between items-center">
                                 <p><FontAwesomeIcon icon={faPiggyBank} className="mr-2" />{t('total')}</p>
                                 <div className="flex flex-col text-[25px] md:text-[30px]">
-                                    <p>{stakedAmount.USDT !== null ? formatBigInt(stakedAmount.USDT) : 'Loading...'}</p>
+                                    <p>{stakedAmount.USDT !== null ? `${formatBigInt(stakedAmount.USDT)} USDT` : 'Loading...'}</p>
                                     {usdtPrice !== null && stakedAmount.USDT !== null && (
-                                        <p className="text-sm">~${formatBigInt((stakedAmount.USDT * usdtPrice))} USD</p>
+                                        <p className="text-sm">~${(parseFloat(formatBigInt(stakedAmount.USDT)) * usdtPrice).toFixed(2)} USD</p>
                                     )}
                                 </div>
                             </div>
+
                             {/* Available in Wallet */}
                             <div className="flex justify-between items-center">
                                 <p><FontAwesomeIcon icon={faWallet} className="mr-2" />{t('available')}</p>
-                                <div className="flex flex-col text-[25px] md:text-[30px]">
+                                <div className="flex flex-col text-[25px] md:text-[30px] text-right">
                                     <p>
                                         {usdtWalletBalance && !isNaN(parseFloat(usdtWalletBalance))
-                                            ? parseFloat(usdtWalletBalance).toFixed(2)
+                                            ? `${parseFloat(usdtWalletBalance).toFixed(2)} USDT`
                                             : 'Loading...'}
                                     </p>
                                     {usdtPrice !== null && usdtWalletBalance && !isNaN(parseFloat(usdtWalletBalance)) && (
@@ -1083,84 +1372,83 @@ function Staking() {
                                     )}
                                 </div>
                             </div>
+
                             {/* Other Stake Information like Stake On, Unlock In, APR, Earned Rewards, etc. */}
-                            {/* Your existing code for the rest of the details goes here */}
                             <div className="flex justify-between items-center">
-                                    <p><FontAwesomeIcon icon={faCalendarCheck} className="mr-2" />{t('Stakeon')}</p>
-                                    <div className="flex flex-col text-[25px] md:text-[30px] loader">
-                                        {stakedOn.USDT ? (
-                                          <>
+                                <p><FontAwesomeIcon icon={faCalendarCheck} className="mr-2" />{t('Stakeon')}</p>
+                                <div className="flex flex-col text-[25px] md:text-[30px] loader">
+                                    {stakedOn.USDT ? (
+                                        <>
                                             <p>{new Date(stakedOn.USDT * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
                                             <p className="text-sm text-right">{Math.ceil((Date.now() - stakedOn.USDT * 1000) / (1000 * 60 * 60 * 24))} days ago</p>
-                                          </>
-                                        ) : (
-                                          'Loading...'
-                                        )}
-                                    </div>
+                                        </>
+                                    ) : (
+                                        'Loading...'
+                                    )}
                                 </div>
-                                <div className="flex justify-between items-center">
-                                    <p><FontAwesomeIcon icon={faLockOpen} className="mr-2" />{t('unlockin')}</p>
-                                    <div className="flex flex-col text-[25px] md:text-[30px] loader">
-                                        {stakeEnd.USDT && stakedOn.USDT ? (
-                                            <>
-                                                {/* Calculate the remaining time in days */}
-                                                <p>{Math.ceil((stakeEnd.USDT * 1000 - Date.now()) / (1000 * 60 * 60 * 24))} days</p>
-                                                <p className="text-sm text-right">{new Date(stakeEnd.USDT * 1000).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
-                                                <div className="w-full h-4 bg-gray-300 rounded-full overflow-hidden mt-2">
-                                                    <div className="h-full bg-green-500 transition-all duration-500 ease-in-out"
-                                                    style={{width: `${((Date.now() / 1000 - stakedOn.USDT) / (stakeEnd.USDT - stakedOn.USDT)) * 100}%`,
-                                                    }}
-                                                    ></div>
-                                                </div>                                            </>
-                                        ) : (
-                                            'Loading...'
-                                        )}
-                                    </div>
+                            </div>
+                            <div className="flex justify-between items-center">
+                                <p><FontAwesomeIcon icon={faLockOpen} className="mr-2" />{t('unlockin')}</p>
+                                <div className="flex flex-col text-[25px] md:text-[30px] loader">
+                                    {stakeEnd.USDT && stakedOn.USDT ? (
+                                        <>
+                                            <p>{new Date(stakeEnd.USDT * 1000).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
+                                            <p className="text-sm text-right">{Math.ceil((stakeEnd.USDT * 1000 - Date.now()) / (1000 * 60 * 60 * 24))} days to go</p>
+                                            <div className="w-full h-4 bg-gray-300 rounded-full overflow-hidden mt-2">
+                                                <div className="h-full bg-green-500 transition-all duration-500 ease-in-out"
+                                                    style={{ width: `${((Date.now() / 1000 - stakedOn.USDT) / (stakeEnd.USDT - stakedOn.USDT)) * 100}%` }}
+                                                ></div>
+                                            </div>
+                                        </>
+                                    ) : (
+                                        'Loading...'
+                                    )}
                                 </div>
-                                <div className="flex justify-between items-center">
-                                  <p><FontAwesomeIcon icon={faPercentage} className="mr-2" />APR:</p>
-                                  <p className="text-[25px] md:text-[30px] loader text-green-500" id="apr-tooltip">
+                            </div>
+                            <div className="flex justify-between items-center">
+                                <p><FontAwesomeIcon icon={faPercentage} className="mr-2" />APR:</p>
+                                <p className="text-[25px] md:text-[30px] loader text-green-500" id="apr-tooltip">
                                     ~{apr}% <i className="fas fa-info-circle ml-2"></i>
-                                  </p>
-                                  <ReactTooltip anchorId="apr-tooltip" place="top" content="This is the annual percentage rate (APR) which determines the yield for your staked tokens." />
+                                </p>
+                                <ReactTooltip anchorId="apr-tooltip" place="top" content="This is the annual percentage rate (APR) which determines the yield for your staked tokens." />
+                            </div>
+                            <div className="flex justify-between items-center">
+                                <p><FontAwesomeIcon icon={faAward} className="mr-2" />{t('earnsofar')}</p>
+                                <div className="flex flex-col text-[25px] md:text-[30px] loader">
+                                    {earnedRewards.USDT !== null && !isNaN(earnedRewards.USDT) && stakedAmount.USDT !== null ? (
+                                        <>
+                                            <p>{`${formatBigInt(earnedRewards.USDT)} USDT`}</p>
+                                            <p className="text-sm text-right text-green-500">
+                                                ~{Math.min((earnedRewards.USDT / stakedAmount.USDT) * 100, apr).toFixed(2)}% Earned
+                                            </p>
+                                        </>
+                                    ) : (
+                                        'Loading...'
+                                    )}
                                 </div>
-                                <div className="flex justify-between items-center">
-                                    <p><FontAwesomeIcon icon={faAward} className="mr-2" />{t('earnsofar')}</p>
-                                    <div className="flex flex-col text-[25px] md:text-[30px] loader">
-                                        {earnedRewards.USDT !== null && !isNaN(earnedRewards.USDT) && stakedAmount.USDT !== null ? (
-                                            <>
-                                                <p>{`${formatBigInt(earnedRewards.USDT)} USDT`}</p>
-                                                {/* Calculate Earned Reward Percentage */}
-                                                <p className="text-sm text-right text-green-500">
-                                                    ~{Math.min((earnedRewards.USDT / stakedAmount.USDT) * 100, apr).toFixed(2)}% Earned
-                                                </p>
-                                            </>
-                                        ) : (
-                                            'Loading...'
-                                        )}
-                                    </div>
-                                </div>
-                                <div className="flex justify-between items-center">
-                                    <p><FontAwesomeIcon icon={faCoins} className="mr-2" />{t('totalreward')}</p>
-                                    <p className="text-[25px] md:text-[30px] loader">
+                            </div>
+                            <div className="flex justify-between items-center">
+                                <p><FontAwesomeIcon icon={faCoins} className="mr-2" />{t('totalreward')}</p>
+                                <div className="flex flex-col text-[25px] md:text-[30px] loader text-green-500">
+                                    {usdtPrice !== null && stakeRewards.USDT !== null && (
+                                        <p>~${(parseFloat(formatBigInt(stakeRewards.USDT)) * usdtPrice).toFixed(2)} USD</p>
+                                    )}
+                                    <p className="text-sm text-right">
                                         {stakeRewards.USDT !== null && !isNaN(stakeRewards.USDT)
                                             ? `${formatBigInt(stakeRewards.USDT)} USDT`
                                             : 'Loading...'}
                                     </p>
                                 </div>
-                                
+                            </div>
 
-
-                                
-
-                                <div className="flex justify-between mt-4">
-                                    <button
-                                        className="bg-blue-500 hover:bg-blue-700 text-white p-3 rounded-md transform hover:scale-105 transition-transform duration-300 shadow-lg hover:shadow-xl active:scale-95 focus:outline-none"
-                                        onClick={() => handleUnstake(usdtAddress)}
-                                    >
-                                        Unlock
-                                    </button>
-                                </div>
+                            <div className="flex justify-between mt-4">
+                                <button
+                                    className="bg-blue-500 hover:bg-blue-700 text-white p-3 rounded-md transform hover:scale-105 transition-transform duration-300 shadow-lg hover:shadow-xl active:scale-95 focus:outline-none"
+                                    onClick={() => handleUnstake(usdtAddress)}
+                                >
+                                    Unstake
+                                </button>
+                            </div>
                         </div>
                     ) : (
                         // "No Stakes Yet" View
@@ -1181,27 +1469,125 @@ function Staking() {
             </div>
 
 
-                
-
-
-
                 {/* BTC Section */}
                 <div className="flex flex-wrap w-full lg:w-[47%] relative mt-10">
                     <img src={mystake} className="absolute w-full h-full" alt="" />
                     <div className="p-2 m-2 md:m-10 w-full relative z-10 md:p-0 md:justify-between">
-                        <div className="my-autow-full md:w-[35%] ">
-                            <div className="flex items-center">
-                                <img src={btc} alt="" className="w-14 h-14 mr-4" />
+                        <div className="my-auto w-full md:w-[35%]">
+                            <div className="flex items-center mb-4">
+                                <img src={btc} alt="BTC Icon" className="w-14 h-14 mr-4" />
                                 <p className="text-[35px] md:text-[30px] font-bold flex">Bitcoin</p>
                             </div>
-
                         </div>
-                        {hasBTCStake ? (
-                            <div className="my-auto w-full md:w-[35%]">
-                                {/* BTC Stake Details */}
-                                {/* Your existing BTC details code here */}
+
+                        {/* Conditional Rendering for Stake Details or "No Stakes Yet" */}
+                        {formatBigInt(stakedAmount.BTC) > 0 ? (
+                            // Stake Details View
+                            <div className="flex flex-col mt-4 space-y-2 text-right">
+                                {/* Total Staked */}
+                                <div className="flex justify-between items-center">
+                                    <p><FontAwesomeIcon icon={faPiggyBank} className="mr-2" />{t('total')}</p>
+                                    <div className="flex flex-col text-[25px] md:text-[30px]">
+                                        <p>{stakedAmount.BTC !== null ? formatBigInt(stakedAmount.BTC) : 'Loading...'}</p>
+                                        {btcPrice !== null && stakedAmount.BTC !== null && (
+                                            <p className="text-sm">~${formatBigInt((stakedAmount.BTC * btcPrice))} USD</p>
+                                        )}
+                                    </div>
+                                </div>
+                                {/* Available in Wallet */}
+                                <div className="flex justify-between items-center">
+                                    <p><FontAwesomeIcon icon={faWallet} className="mr-2" />{t('available')}</p>
+                                    <div className="flex flex-col text-[25px] md:text-[30px] text-right">
+                                        <p>
+                                            {btcWalletBalance && !isNaN(parseFloat(btcWalletBalance))
+                                                ? `${parseFloat(btcWalletBalance).toFixed(2)} BTC`
+                                                : 'Loading...'}
+                                        </p>
+                                        {btcPrice !== null && btcWalletBalance && !isNaN(parseFloat(btcWalletBalance)) && (
+                                            <p className="text-sm">~${(parseFloat(btcWalletBalance) * btcPrice).toFixed(2)} USD</p>
+                                        )}
+                                    </div>
+                                </div>
+                                {/* Other Stake Information like Stake On, Unlock In, APR, Earned Rewards, etc. */}
+                                <div className="flex justify-between items-center">
+                                    <p><FontAwesomeIcon icon={faCalendarCheck} className="mr-2" />{t('Stakeon')}</p>
+                                    <div className="flex flex-col text-[25px] md:text-[30px] loader">
+                                        {stakedOn.BTC ? (
+                                            <>
+                                                <p>{new Date(stakedOn.BTC * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
+                                                <p className="text-sm text-right">{Math.ceil((Date.now() - stakedOn.BTC * 1000) / (1000 * 60 * 60 * 24))} days ago</p>
+                                            </>
+                                        ) : (
+                                            'Loading...'
+                                        )}
+                                    </div>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                    <p><FontAwesomeIcon icon={faLockOpen} className="mr-2" />{t('unlockin')}</p>
+                                    <div className="flex flex-col text-[25px] md:text-[30px] loader">
+                                        {stakeEnd.BTC && stakedOn.BTC ? (
+                                            <>
+                                                <p>{new Date(stakeEnd.BTC * 1000).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
+                                                <p className="text-sm text-right">{Math.ceil((stakeEnd.BTC * 1000 - Date.now()) / (1000 * 60 * 60 * 24))} days to go</p>
+                                                <div className="w-full h-4 bg-gray-300 rounded-full overflow-hidden mt-2">
+                                                    <div className="h-full bg-green-500 transition-all duration-500 ease-in-out"
+                                                        style={{ width: `${((Date.now() / 1000 - stakedOn.BTC) / (stakeEnd.BTC - stakedOn.BTC)) * 100}%` }}
+                                                    ></div>
+                                                </div>
+                                            </>
+                                        ) : (
+                                            'Loading...'
+                                        )}
+                                    </div>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                    <p><FontAwesomeIcon icon={faPercentage} className="mr-2" />APR:</p>
+                                    <p className="text-[25px] md:text-[30px] loader text-green-500" id="apr-tooltip">
+                                        ~{apr}% <i className="fas fa-info-circle ml-2"></i>
+                                    </p>
+                                    <ReactTooltip anchorId="apr-tooltip" place="top" content="This is the annual percentage rate (APR) which determines the yield for your staked tokens." />
+                                </div>
+                                <div className="flex justify-between items-center">
+                                    <p><FontAwesomeIcon icon={faAward} className="mr-2" />{t('earnsofar')}</p>
+                                    <div className="flex flex-col text-[25px] md:text-[30px] loader">
+                                        {earnedRewards.BTC !== null && !isNaN(earnedRewards.BTC) && stakedAmount.BTC !== null ? (
+                                            <>
+                                                <p>{`${formatBigInt(earnedRewards.BTC)} BTC`}</p>
+                                                <p className="text-sm text-right text-green-500">
+                                                    ~{Math.min((earnedRewards.BTC / stakedAmount.BTC) * 100, apr).toFixed(2)}% Earned
+                                                </p>
+                                            </>
+                                        ) : (
+                                            'Loading...'
+                                        )}
+                                    </div>
+                                </div>
+                                <div className="flex justify-between items-center ">
+                                    <p><FontAwesomeIcon icon={faCoins} className="mr-2" />{t('totalreward')}</p>
+                                    <div className="flex flex-col text-[25px] md:text-[30px] loader text-green-500">
+                                        
+                                        {btcPrice !== null && stakeRewards.BTC !== null && (
+                                            <p>~${(parseFloat(formatBigInt(stakeRewards.BTC)) * btcPrice).toFixed(2)} USD</p>
+                                        )}
+                                        <p className="text-sm text-right">
+                                            {stakeRewards.BTC !== null && !isNaN(stakeRewards.BTC)
+                                                ? `${formatBigInt(stakeRewards.BTC)} BTC`
+                                                : 'Loading...'}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div className="flex justify-between mt-4">
+                                    <button
+                                        className="bg-blue-500 hover:bg-blue-700 text-white p-3 rounded-md transform hover:scale-105 transition-transform duration-300 shadow-lg hover:shadow-xl active:scale-95 focus:outline-none"
+                                        onClick={() => handleUnstake(wbtcAddress)}
+                                    >
+                                        Unstake
+                                    </button>
+                                </div>
                             </div>
                         ) : (
+                            // "No Stakes Yet" View
                             <div className="flex flex-col items-center justify-center p-8">
                                 <h2 className="text-white text-3xl font-bold mb-4">{t('nostakeyet')}</h2>
                                 <p className="text-white mb-4">
@@ -1215,26 +1601,129 @@ function Staking() {
                                 </button>
                             </div>
                         )}
-
                     </div>
                 </div>
+
                 {/* ETH Section */}
                 <div className="flex flex-wrap w-full lg:w-[47%] relative mt-10">
                     <img src={mystake} className="absolute w-full h-full" alt="" />
                     <div className="p-2 m-2 md:m-10 w-full relative z-10 md:p-0 md:justify-between">
-                        <div className="my-autow-full md:w-[35%] ">
-                            <div className="flex items-center">
-                                <img src={eth} alt="" className="w-14 h-14 mr-4" />
+                        <div className="my-auto w-full md:w-[35%]">
+                            <div className="flex items-center mb-4">
+                                <img src={eth} alt="ETH Icon" className="w-14 h-14 mr-4" />
                                 <p className="text-[35px] md:text-[30px] font-bold flex">Ethereum</p>
                             </div>
-
                         </div>
-                        {hasETHStake ? (
-                            <div className="my-auto w-full md:w-[35%]">
-                                {/* ETH Stake Details */}
-                                {/* Your existing ETH details code here */}
+
+                        {/* Conditional Rendering for Stake Details or "No Stakes Yet" */}
+                        {formatBigInt(stakedAmount.ETH) > 0 ? (
+                            // Stake Details View
+                            <div className="flex flex-col mt-4 space-y-2 text-right">
+                                {/* Total Staked */}
+                                <div className="flex justify-between items-center">
+                                    <p><FontAwesomeIcon icon={faPiggyBank} className="mr-2" />{t('total')}</p>
+                                    <div className="flex flex-col text-[25px] md:text-[30px]">
+                                        <p>{stakedAmount.ETH !== null ? `${formatBigInt(stakedAmount.ETH)} ETH` : 'Loading...'}</p>
+                                        {ethPrice !== null && stakedAmount.ETH !== null && (
+                                            <p className="text-sm">~${(parseFloat(formatBigInt(stakedAmount.ETH)) * ethPrice).toFixed(2)} USD</p>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Available in Wallet */}
+                                <div className="flex justify-between items-center">
+                                    <p><FontAwesomeIcon icon={faWallet} className="mr-2" />{t('available')}</p>
+                                    <div className="flex flex-col text-[25px] md:text-[30px] text-right">
+                                        <p>
+                                            {ethWalletBalance && !isNaN(parseFloat(ethWalletBalance))
+                                                ? `${parseFloat(ethWalletBalance).toFixed(2)} ETH`
+                                                : 'Loading...'}
+                                        </p>
+                                        {ethPrice !== null && ethWalletBalance && !isNaN(parseFloat(ethWalletBalance)) && (
+                                            <p className="text-sm text-right">~${(parseFloat(ethWalletBalance) * ethPrice).toFixed(2)} USD</p>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Other Stake Information like Stake On, Unlock In, APR, Earned Rewards, etc. */}
+                                <div className="flex justify-between items-center">
+                                    <p><FontAwesomeIcon icon={faCalendarCheck} className="mr-2" />{t('Stakeon')}</p>
+                                    <div className="flex flex-col text-[25px] md:text-[30px] loader">
+                                        {stakedOn.ETH ? (
+                                            <>
+                                                <p>{new Date(stakedOn.ETH * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
+                                                <p className="text-sm text-right">{Math.ceil((Date.now() - stakedOn.ETH * 1000) / (1000 * 60 * 60 * 24))} days ago</p>
+                                            </>
+                                        ) : (
+                                            'Loading...'
+                                        )}
+                                    </div>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                    <p><FontAwesomeIcon icon={faLockOpen} className="mr-2" />{t('unlockin')}</p>
+                                    <div className="flex flex-col text-[25px] md:text-[30px] loader">
+                                        {stakeEnd.ETH && stakedOn.ETH ? (
+                                            <>
+                                                <p>{new Date(stakeEnd.ETH * 1000).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
+                                                <p className="text-sm text-right">{Math.ceil((stakeEnd.ETH * 1000 - Date.now()) / (1000 * 60 * 60 * 24))} days to go</p>
+                                                <div className="w-full h-4 bg-gray-300 rounded-full overflow-hidden mt-2">
+                                                    <div className="h-full bg-green-500 transition-all duration-500 ease-in-out"
+                                                        style={{ width: `${((Date.now() / 1000 - stakedOn.ETH) / (stakeEnd.ETH - stakedOn.ETH)) * 100}%` }}
+                                                    ></div>
+                                                </div>
+                                            </>
+                                        ) : (
+                                            'Loading...'
+                                        )}
+                                    </div>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                    <p><FontAwesomeIcon icon={faPercentage} className="mr-2" />APR:</p>
+                                    <p className="text-[25px] md:text-[30px] loader text-green-500" id="apr-tooltip">
+                                        ~{apr}% <i className="fas fa-info-circle ml-2"></i>
+                                    </p>
+                                    <ReactTooltip anchorId="apr-tooltip" place="top" content="This is the annual percentage rate (APR) which determines the yield for your staked tokens." />
+                                </div>
+                                <div className="flex justify-between items-center">
+                                    <p><FontAwesomeIcon icon={faAward} className="mr-2" />{t('earnsofar')}</p>
+                                    <div className="flex flex-col text-[25px] md:text-[30px] loader">
+                                        {earnedRewards.ETH !== null && !isNaN(earnedRewards.ETH) && stakedAmount.ETH !== null ? (
+                                            <>
+                                                <p>{`${formatBigInt(earnedRewards.ETH)} ETH`}</p>
+                                                <p className="text-sm text-right text-green-500">
+                                                    ~{Math.min((earnedRewards.ETH / stakedAmount.ETH) * 100, apr).toFixed(2)}% Earned
+                                                </p>
+                                            </>
+                                        ) : (
+                                            'Loading...'
+                                        )}
+                                    </div>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                    <p><FontAwesomeIcon icon={faCoins} className="mr-2" />{t('totalreward')}</p>
+                                    <div className="flex flex-col text-[25px] md:text-[30px] loader text-green-500">
+                                        {ethPrice !== null && stakeRewards.ETH !== null && (
+                                            <p>~${(parseFloat(formatBigInt(stakeRewards.ETH)) * ethPrice).toFixed(2)} USD</p>
+                                        )}
+                                        <p className="text-sm text-right">
+                                            {stakeRewards.ETH !== null && !isNaN(stakeRewards.ETH)
+                                                ? `${formatBigInt(stakeRewards.ETH)} ETH`
+                                                : 'Loading...'}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div className="flex justify-between mt-4">
+                                    <button
+                                        className="bg-blue-500 hover:bg-blue-700 text-white p-3 rounded-md transform hover:scale-105 transition-transform duration-300 shadow-lg hover:shadow-xl active:scale-95 focus:outline-none"
+                                        onClick={() => handleUnstake(wethAddress)}
+                                    >
+                                        Unstake
+                                    </button>
+                                </div>
                             </div>
                         ) : (
+                            // "No Stakes Yet" View
                             <div className="flex flex-col items-center justify-center p-8">
                                 <h2 className="text-white text-3xl font-bold mb-4">{t('nostakeyet')}</h2>
                                 <p className="text-white mb-4">
@@ -1248,9 +1737,10 @@ function Staking() {
                                 </button>
                             </div>
                         )}
-
                     </div>
                 </div>
+
+
                 <div className="flex flex-col my-10 w-full h-auto bg-black">
                     <img src={bg_whale} className="w-full h-auto" alt="" />
                     <p className="lg:pl-20 pl-10 mt-[-90px] lg:mt-[-200px] text-[18px] md:text-[40px] font-bold lg:text-[51px]">{t('crypto')}</p>
