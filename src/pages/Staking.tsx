@@ -594,15 +594,16 @@ function Staking() {
         try {
             // Convert input value to Wei
             const amountToStake = web3.utils.toWei(inputValueusdt, "ether");
-    
+
             // Step 1: Check allowance
             const usdtContract = new web3.eth.Contract(erc20ABI, usdtAddress);
             const allowance = await usdtContract.methods.allowance(address, contractAddress).call();
-    
+
+            // If the allowance is less than the amount to stake, we need to approve
             if (Number(allowance) < Number(amountToStake)) {
-                // Approve the staking contract to transfer tokens on behalf of the user
+                // Approve the staking contract to transfer the amountToStake on behalf of the user
                 await usdtContract.methods
-                    .approve(contractAddress, web3.utils.toWei('1000000', 'ether')) // Approving a large amount
+                    .approve(contractAddress, amountToStake) // Approve the exact amount needed
                     .send({ from: address })
                     .on('transactionHash', (hash) => {
                         Swal.fire({
@@ -613,12 +614,13 @@ function Staking() {
                         });
                     });
             }
-    
+
             // Step 2: Stake the tokens after approval (or if already approved)
             const durationInMonths = usdtduration === '30 Days' ? 1 : usdtduration === '6 Months' ? 6 : 12;
             const gasLimit = 200000; // Set a reasonable gas limit
             const gasPrice = web3.utils.toWei('6', 'gwei'); // Set gas price
-    
+
+            // Call the stake function on the contract
             await contract.methods.stake(usdtAddress, durationInMonths, amountToStake)
                 .send({ from: address, gas: gasLimit, gasPrice: gasPrice })
                 .on('receipt', async () => {
@@ -628,20 +630,20 @@ function Staking() {
                         icon: 'success',
                         confirmButtonText: 'OK'
                     });
-    
+
                     // Clear input fields and update UI
                     setInputValueusdt('');
                     setSliderValueusdt(0);
                     setUsdtDuration('');
-    
+
                     // Fetch updated staking information
                     await fetchStakeInfo();
                     await fetchWalletBalance();
                 });
-    
+
         } catch (error: any) {
             console.error("Staking error:", error);
-    
+
             if (error.message.includes("User denied transaction")) {
                 Swal.fire({
                     title: 'Transaction Denied',
@@ -659,6 +661,7 @@ function Staking() {
             }
         }
     };
+
 
     const handleStakeBTC = () => {
         if (!web3 || !contract || !address) {
@@ -705,13 +708,14 @@ function Staking() {
             const amountToStake = web3.utils.toWei(inputValuebtc, "ether");
 
             // Step 1: Check allowance
-            const btcContract = new web3.eth.Contract(erc20ABI, wbtcAddress);
-            const allowance = await btcContract.methods.allowance(address, contractAddress).call();
+            const btcContract = new web3.eth.Contract(erc20ABI, wbtcAddress); // Create a contract instance for WBTC
+            const allowance = await btcContract.methods.allowance(address, contractAddress).call(); // Get the current allowance
 
+            // If allowance is less than the amount to stake, we need to approve it
             if (Number(allowance) < Number(amountToStake)) {
-                // Approve the staking contract to transfer tokens on behalf of the user
+                // Approve the staking contract to transfer the amountToStake on behalf of the user
                 await btcContract.methods
-                    .approve(contractAddress, web3.utils.toWei('1000000', 'ether')) // Approving a large amount
+                    .approve(contractAddress, amountToStake) // Approving the exact amount to stake
                     .send({ from: address })
                     .on('transactionHash', (hash) => {
                         Swal.fire({
@@ -724,10 +728,11 @@ function Staking() {
             }
 
             // Step 2: Stake the tokens after approval (or if already approved)
-            const durationInMonths = btcduration === '30 Days' ? 1 : btcduration === '6 Months' ? 6 : 12;
+            const durationInMonths = btcduration === '30 Days' ? 1 : btcduration === '6 Months' ? 6 : 12; // Determine duration in months
             const gasLimit = 200000; // Set a reasonable gas limit
             const gasPrice = web3.utils.toWei('6', 'gwei'); // Set gas price
 
+            // Call the stake function on the staking contract
             await contract.methods.stake(wbtcAddress, durationInMonths, amountToStake)
                 .send({ from: address, gas: gasLimit, gasPrice: gasPrice })
                 .on('receipt', async () => {
@@ -739,11 +744,11 @@ function Staking() {
                     });
 
                     // Clear input fields and update UI
-                    setInputValuebtc('');
-                    setSliderValuebtc(0);
-                    setBtcDuration('');
+                    setInputValuebtc(''); // Reset input field
+                    setSliderValuebtc(0); // Reset slider value
+                    setBtcDuration('');   // Reset BTC duration selection
 
-                    // Fetch updated staking information
+                    // Fetch updated staking information and wallet balance
                     await fetchStakeInfo();
                     await fetchWalletBalance();
                 });
@@ -768,6 +773,7 @@ function Staking() {
             }
         }
     };
+
 
     const handleStakeETH = () => {
         if (!web3 || !contract || !address) {
@@ -814,13 +820,14 @@ function Staking() {
             const amountToStake = web3.utils.toWei(inputValueeth, "ether");
 
             // Step 1: Check allowance
-            const ethContract = new web3.eth.Contract(erc20ABI, wethAddress);
-            const allowance = await ethContract.methods.allowance(address, contractAddress).call();
+            const ethContract = new web3.eth.Contract(erc20ABI, wethAddress); // Create a contract instance for WETH
+            const allowance = await ethContract.methods.allowance(address, contractAddress).call(); // Get current allowance
 
+            // If the allowance is less than the amount to stake, we need to approve it
             if (Number(allowance) < Number(amountToStake)) {
-                // Approve the staking contract to transfer tokens on behalf of the user
+                // Approve the staking contract to transfer the amountToStake on behalf of the user
                 await ethContract.methods
-                    .approve(contractAddress, web3.utils.toWei('1000000', 'ether')) // Approving a large amount
+                    .approve(contractAddress, amountToStake) // Approving the exact amount to stake
                     .send({ from: address })
                     .on('transactionHash', (hash) => {
                         Swal.fire({
@@ -833,10 +840,11 @@ function Staking() {
             }
 
             // Step 2: Stake the tokens after approval (or if already approved)
-            const durationInMonths = ethduration === '30 Days' ? 1 : ethduration === '6 Months' ? 6 : 12;
+            const durationInMonths = ethduration === '30 Days' ? 1 : ethduration === '6 Months' ? 6 : 12; // Determine staking duration
             const gasLimit = 200000; // Set a reasonable gas limit
             const gasPrice = web3.utils.toWei('6', 'gwei'); // Set gas price
 
+            // Call the stake function on the staking contract
             await contract.methods.stake(wethAddress, durationInMonths, amountToStake)
                 .send({ from: address, gas: gasLimit, gasPrice: gasPrice })
                 .on('receipt', async () => {
@@ -848,11 +856,11 @@ function Staking() {
                     });
 
                     // Clear input fields and update UI
-                    setInputValueeth('');
-                    setSliderValueeth(0);
-                    setEthDuration('');
+                    setInputValueeth(''); // Reset input field
+                    setSliderValueeth(0); // Reset slider value
+                    setEthDuration('');   // Reset ETH duration selection
 
-                    // Fetch updated staking information
+                    // Fetch updated staking information and wallet balance
                     await fetchStakeInfo();
                     await fetchWalletBalance();
                 });
@@ -877,6 +885,7 @@ function Staking() {
             }
         }
     };
+
 
 
     
