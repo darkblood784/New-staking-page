@@ -1213,17 +1213,19 @@ function Staking() {
                             <PrimeInput
                                 value={inputValuebtc}
                                 setValue={(val: any) => {
-                                    setInputValuebtc(val);
+                                    setSliderValuebtc(val);
 
-                                    // Update the slider value based on the input value
                                     if (btcWalletBalance && btcWalletBalance !== "Error" && btcWalletBalance !== "Connect Wallet" && !isNaN(parseFloat(btcWalletBalance))) {
-                                        
                                         // Convert balance to a float and get its precision
                                         const balanceFloat = parseFloat(btcWalletBalance);
                                         const precision = balanceFloat.toString().split(".")[1]?.length || 0; // Get decimal precision
 
                                         // Calculate based on selected percentage (e.g., 25%, 50%, 75%, or 100%)
                                         const calculatedValue = (balanceFloat * val) / 100;
+                                        
+                                        console.log("BTC Wallet Balance:", balanceFloat);
+                                        console.log("Precision:", precision);
+                                        console.log("Calculated Value:", calculatedValue);
 
                                         setInputValuebtc(
                                             val === 100
@@ -1231,6 +1233,7 @@ function Staking() {
                                                 : calculatedValue.toFixed(precision) // Adjusted calculated value for other percentages
                                         );
                                     }
+
                                 }}
                                 validatePrime={validatePrime}
                             />
