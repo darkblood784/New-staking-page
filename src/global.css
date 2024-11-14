@@ -29,3 +29,13 @@ body {
     text-shadow: 1.5px 1.5px 0px #787777;
     letter-spacing: 2.5px;
 }
+
+/* CSS for input highlight effect */
+.input-highlight {
+    transition: background-color 0.3s ease, color 0.3s ease; /* Smooth color transition */
+}
+
+.input-highlight.changed {
+    background-color: #d4f1f9; /* Light blue background */
+    color: #007bff; /* Dark blue text color */
+}
