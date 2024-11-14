@@ -1138,7 +1138,7 @@ function Staking() {
                             setSliderValue={(val) => {
                                 setSliderValueusdt(val);
                                 if (usdtWalletBalance && usdtWalletBalance !== "Error" && usdtWalletBalance !== "Connect Wallet" && !isNaN(parseFloat(usdtWalletBalance))) {
-                                    const calculatedValue = ((parseFloat(usdtWalletBalance) * val) / 100).toFixed(2);
+                                    const calculatedValue = ((parseFloat(usdtWalletBalance) * val) / 100).toFixed(6);
                                     setInputValueusdt(calculatedValue);
                                 }
                             }}
