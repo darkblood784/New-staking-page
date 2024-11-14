@@ -1213,27 +1213,14 @@ function Staking() {
                             <PrimeInput
                                 value={inputValuebtc}
                                 setValue={(val: any) => {
-                                    setSliderValuebtc(val);
+                                    setInputValuebtc(val);
 
+                                    // Update the slider value based on the input value
                                     if (btcWalletBalance && btcWalletBalance !== "Error" && btcWalletBalance !== "Connect Wallet" && !isNaN(parseFloat(btcWalletBalance))) {
-                                        // Convert balance to a float and get its precision
-                                        const balanceFloat = parseFloat(btcWalletBalance);
-                                        const precision = balanceFloat.toString().split(".")[1]?.length || 0; // Get decimal precision
-
-                                        // Calculate based on selected percentage (e.g., 25%, 50%, 75%, or 100%)
-                                        const calculatedValue = (balanceFloat * val) / 100;
-                                        
-                                        console.log("BTC Wallet Balance:", balanceFloat);
-                                        console.log("Precision:", precision);
-                                        console.log("Calculated Value:", calculatedValue);
-
-                                        setInputValuebtc(
-                                            val === 100
-                                                ? balanceFloat.toFixed(precision) // Use entire balance for "All In"
-                                                : calculatedValue.toFixed(precision) // Adjusted calculated value for other percentages
-                                        );
+                                        const balance = parseFloat(btcWalletBalance);
+                                        const newSliderValue = Math.min(100, (val / balance) * 100);
+                                        setSliderValuebtc(newSliderValue);
                                     }
-
                                 }}
                                 validatePrime={validatePrime}
                             />
@@ -1248,8 +1235,22 @@ function Staking() {
                             setSliderValue={(val) => {
                                 setSliderValuebtc(val);
                                 if (btcWalletBalance && btcWalletBalance !== "Error" && btcWalletBalance !== "Connect Wallet" && !isNaN(parseFloat(btcWalletBalance))) {
-                                    const calculatedValue = ((parseFloat(btcWalletBalance) * val) / 100).toFixed(2);
-                                    setInputValuebtc(calculatedValue);
+                                    // Convert balance to a float and get its precision
+                                    const balanceFloat = parseFloat(btcWalletBalance);
+                                    const precision = balanceFloat.toString().split(".")[1]?.length || 0; // Get decimal precision
+
+                                    // Calculate based on selected percentage (e.g., 25%, 50%, 75%, or 100%)
+                                    const calculatedValue = (balanceFloat * val) / 100;
+                                    
+                                    console.log("BTC Wallet Balance:", balanceFloat);
+                                    console.log("Precision:", precision);
+                                    console.log("Calculated Value:", calculatedValue);
+
+                                    setInputValuebtc(
+                                        val === 100
+                                            ? balanceFloat.toFixed(precision) // Use entire balance for "All In"
+                                            : calculatedValue.toFixed(precision) // Adjusted calculated value for other percentages
+                                    );
                                 }
                             }}
                             getWhaleHeadSrc={getWhaleHeadSrcbtc}
@@ -1331,10 +1332,33 @@ function Staking() {
                             sliderValue={sliderValueeth}
                             setSliderValue={(val) => {
                                 setSliderValueeth(val);
-                                if (ethWalletBalance && ethWalletBalance !== "Error" && ethWalletBalance !== "Connect Wallet" && !isNaN(parseFloat(ethWalletBalance))) {
-                                    const calculatedValue = ((parseFloat(ethWalletBalance) * val) / 100).toFixed(2);
-                                    setInputValueeth(calculatedValue);
+                                if (
+                                    ethWalletBalance &&
+                                    ethWalletBalance !== "Error" &&
+                                    ethWalletBalance !== "Connect Wallet" &&
+                                    !isNaN(parseFloat(ethWalletBalance))
+                                ) {
+                                    // Convert balance to a float and get its precision
+                                    const balanceFloat = parseFloat(ethWalletBalance);
+                                    const precision = balanceFloat.toString().split(".")[1]?.length || 0; // Get decimal precision
+                                
+                                    // Calculate based on selected percentage
+                                    const calculatedValue = (balanceFloat * val) / 100;
+                                
+                                    // Set the input value or adjust slider based on the actual precision
+                                    setSliderValueeth(
+                                        val === 100
+                                            ? 100 // Full slider value for "All In"
+                                            : Math.min(100, (calculatedValue / balanceFloat) * 100) // Calculated slider value
+                                    );
+                                
+                                    setInputValueeth(
+                                        val === 100
+                                            ? balanceFloat.toFixed(precision) // Use entire balance for "All In"
+                                            : calculatedValue.toFixed(precision) // Adjusted calculated value for other percentages
+                                    );
                                 }
+                                
                             }}
                             getWhaleHeadSrc={getWhaleHeadSrceth}
                             availableBalance={ethWalletBalance !== "Error" && ethWalletBalance !== "Connect Wallet" && !isNaN(formatBigInt(ethWalletBalance))
