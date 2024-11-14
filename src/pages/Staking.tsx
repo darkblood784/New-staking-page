@@ -1138,8 +1138,18 @@ function Staking() {
                             setSliderValue={(val) => {
                                 setSliderValueusdt(val);
                                 if (usdtWalletBalance && usdtWalletBalance !== "Error" && usdtWalletBalance !== "Connect Wallet" && !isNaN(parseFloat(usdtWalletBalance))) {
-                                    const calculatedValue = ((parseFloat(usdtWalletBalance) * val) / 100).toFixed(6);
-                                    setInputValueusdt(calculatedValue);
+                                    // Convert balance to a float and get its precision
+                                    const balanceFloat = parseFloat(usdtWalletBalance);
+                                    const precision = balanceFloat.toString().split(".")[1]?.length || 0; // Get decimal precision
+
+                                    // Calculate based on selected percentage (e.g., 25%, 50%, 75%, or 100%)
+                                    const calculatedValue = (balanceFloat * val) / 100;
+                                    
+                                    setInputValueusdt(
+                                        val === 100
+                                            ? balanceFloat.toFixed(precision) // Use entire balance for "All In"
+                                            : calculatedValue.toFixed(precision) // Adjusted calculated value for other percentages
+                                    );
                                 }
                             }}
                             getWhaleHeadSrc={getWhaleHeadSrcusdt}
