@@ -1216,27 +1216,21 @@ function Staking() {
                                     setInputValuebtc(val);
 
                                     // Update the slider value based on the input value
-                                    if (
-                                        btcWalletBalance &&
-                                        btcWalletBalance !== "Error" &&
-                                        btcWalletBalance !== "Connect Wallet" &&
-                                        !isNaN(parseFloat(btcWalletBalance))
-                                    ) {
+                                    if (btcWalletBalance && btcWalletBalance !== "Error" && btcWalletBalance !== "Connect Wallet" && !isNaN(parseFloat(btcWalletBalance))) {
+                                        
                                         // Convert balance to a float and get its precision
                                         const balanceFloat = parseFloat(btcWalletBalance);
                                         const precision = balanceFloat.toString().split(".")[1]?.length || 0; // Get decimal precision
-                                    
+
                                         // Calculate based on selected percentage (e.g., 25%, 50%, 75%, or 100%)
                                         const calculatedValue = (balanceFloat * val) / 100;
-                                    
-                                        // Set the input value based on precision or use the entire balance if "All In" is selected
+
                                         setInputValuebtc(
                                             val === 100
                                                 ? balanceFloat.toFixed(precision) // Use entire balance for "All In"
                                                 : calculatedValue.toFixed(precision) // Adjusted calculated value for other percentages
                                         );
                                     }
-                                    
                                 }}
                                 validatePrime={validatePrime}
                             />
@@ -1316,33 +1310,11 @@ function Staking() {
                                     setInputValueeth(val);
 
                                     // Update the slider value based on the input value
-                                    if (
-                                        ethWalletBalance &&
-                                        ethWalletBalance !== "Error" &&
-                                        ethWalletBalance !== "Connect Wallet" &&
-                                        !isNaN(parseFloat(ethWalletBalance))
-                                    ) {
-                                        // Convert balance to a float and get its precision
-                                        const balanceFloat = parseFloat(ethWalletBalance);
-                                        const precision = balanceFloat.toString().split(".")[1]?.length || 0; // Get decimal precision
-                                    
-                                        // Calculate based on selected percentage
-                                        const calculatedValue = (balanceFloat * val) / 100;
-                                    
-                                        // Set the input value or adjust slider based on the actual precision
-                                        setSliderValueeth(
-                                            val === 100
-                                                ? 100 // Full slider value for "All In"
-                                                : Math.min(100, (calculatedValue / balanceFloat) * 100) // Calculated slider value
-                                        );
-                                    
-                                        setInputValueeth(
-                                            val === 100
-                                                ? balanceFloat.toFixed(precision) // Use entire balance for "All In"
-                                                : calculatedValue.toFixed(precision) // Adjusted calculated value for other percentages
-                                        );
+                                    if (ethWalletBalance && ethWalletBalance !== "Error" && ethWalletBalance !== "Connect Wallet" && !isNaN(parseFloat(ethWalletBalance))) {
+                                        const balance = parseFloat(ethWalletBalance);
+                                        const newSliderValue = Math.min(100, (val / balance) * 100);
+                                        setSliderValueeth(newSliderValue);
                                     }
-                                    
                                 }}
                                 validatePrime={validatePrime}
                             />
