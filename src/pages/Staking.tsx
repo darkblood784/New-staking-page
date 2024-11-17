@@ -120,15 +120,12 @@ function Staking() {
 
     // Function to calculate APR based on duration
     const calculateAPR = (durationInMonths: number): number => {
-        if (durationInMonths === 1) {
-            return 15; // 15% for 1 month
-        } else if (durationInMonths === 6) {
-            return 24; // 24% for 6 months
-        } else if (durationInMonths === 12) {
-            return 36; // 36% for 12 months
-        }
+        if (durationInMonths === 1) return 15; // 15% for 1 month
+        if (durationInMonths === 6) return 24; // 24% for 6 months
+        if (durationInMonths === 12) return 36; // 36% for 12 months
         return 0; // Invalid duration
     };
+    
 
 
     // Updated APR calculation
@@ -372,49 +369,43 @@ function Staking() {
                 const tokens = [
                     { address: usdtAddress, name: "USDT" },
                     { address: wbtcAddress, name: "BTC" },
-                    { address: wethAddress, name: "ETH" }
+                    { address: wethAddress, name: "ETH" },
                 ];
     
+                // Fetch data for each token
                 const promises = tokens.map(async (token) => {
                     try {
                         console.log(`Fetching data for token: ${token.name}`);
                         const stakedInfo = await contract.methods.userStakeInfos(address, token.address).call();
                         console.log(`Staked info for ${token.name}:`, stakedInfo);
     
-                        // Use BigInt conversion for calculations
-                        const stakedAmountBigInt = stakedInfo.stakedAmount ? BigInt(stakedInfo.stakedAmount) : BigInt(0);
-                        const rewardsBigInt = stakedInfo.rewards ? BigInt(stakedInfo.rewards) : BigInt(0);
-    
-                        const stakedAmount = Number(stakedAmountBigInt.toString());
-                        const rewards = Number(rewardsBigInt.toString());
-                        const stakedAt = Number(stakedInfo.stakedAt);
-                        const stakeEnd = Number(stakedInfo.stakeEnd);
+                        // Convert BigInt values for calculations
+                        const stakedAmount = Number(BigInt(stakedInfo.stakedAmount || 0).toString());
+                        const rewards = Number(BigInt(stakedInfo.rewards || 0).toString());
+                        const stakedAt = Number(stakedInfo.stakedAt || 0);
+                        const stakeEnd = Number(stakedInfo.stakeEnd || 0);
     
                         // Calculate duration in months
-                        const durationInSeconds = stakeEnd - stakedAt;
-                        const durationInMonths = Math.round(durationInSeconds / (30 * 24 * 60 * 60)); // Convert seconds to months
+                        const durationInMonths = Math.round((stakeEnd - stakedAt) / (30 * 24 * 60 * 60)); // Approximate month calculation
                         console.log(`Duration for ${token.name}: ${durationInMonths} months`);
     
-                        // Calculate APR based on duration
-                        const calculateAPR = (durationInMonths: number): number => {
-                            if (durationInMonths === 1) {
-                                return 15; // 15% for 1 month
-                            } else if (durationInMonths === 6) {
-                                return 24; // 24% for 6 months
-                            } else if (durationInMonths === 12) {
-                                return 36; // 36% for 12 months
-                            }
-                            return 0; // Default for invalid duration
+                        // Function to calculate APR based on duration
+                        const calculateAPR = (duration) => {
+                            if (duration === 1) return 15; // 1 month -> 15% APR
+                            if (duration === 6) return 24; // 6 months -> 24% APR
+                            if (duration === 12) return 36; // 12 months -> 36% APR
+                            return 0; // Default for invalid durations
                         };
+    
                         const apr = calculateAPR(durationInMonths);
                         console.log(`APR for ${token.name}: ${apr}%`);
     
                         // Calculate earned rewards so far
                         const currentTimestamp = Math.floor(Date.now() / 1000); // Current time in seconds
                         const daysElapsed = stakedAt
-                            ? (currentTimestamp - stakedAt) / (60 * 60 * 24) // Convert elapsed seconds to days
+                            ? (currentTimestamp - stakedAt) / (60 * 60 * 24) // Convert seconds to days
                             : 0;
-                        const earnedRewards = stakedAmount * (apr / 100) * (daysElapsed / 365); // Rewards calculation
+                        const earnedRewards = (stakedAmount * apr * (daysElapsed / 365)) / 100; // Rewards formula
     
                         return {
                             name: token.name,
@@ -422,46 +413,57 @@ function Staking() {
                             rewards,
                             apr,
                             earnedRewards,
-                            stakeEnd,
                             stakedAt,
+                            stakeEnd,
                         };
-                    } catch (innerError) {
-                        console.error(`Error fetching staking information for ${token.name}:`, innerError);
-                        return null; // Return null if fetching fails
+                    } catch (error) {
+                        console.error(`Error fetching staking info for ${token.name}:`, error);
+                        return null; // Skip invalid tokens
                     }
                 });
     
+                // Process all token data
                 const results = await Promise.all(promises);
-                console.log("Final results from fetchStakeInfo:", results);
+                const validResults = results.filter(Boolean); // Filter out null results
     
-                // Filter out null results
-                const validResults = results.filter((result) => result !== null);
+                if (validResults.length === 0) {
+                    console.warn("No valid staking information found.");
+                    return;
+                }
     
-                // Update the state with fetched information
-                const stakedAmounts: { [key: string]: number } = {};
-                const stakeRewards: { [key: string]: number } = {};
-                const earnedRewardsMap: { [key: string]: number } = {};
-                const aprValues: { [key: string]: number } = {};
-                const stakeEnds: { [key: string]: number | null } = {};
-                const stakedOns: { [key: string]: number | null } = {};
+                // Prepare data for state updates
+                const stakedAmounts = {};
+                const stakeRewards = {};
+                const earnedRewardsMap = {};
+                const aprValues = {};
+                const stakeEnds = {};
+                const stakedOns = {};
     
                 validResults.forEach((token) => {
-                    stakedAmounts[token!.name] = token!.stakedAmount;
-                    stakeRewards[token!.name] = token!.rewards;
-                    earnedRewardsMap[token!.name] = token!.earnedRewards;
-                    aprValues[token!.name] = token!.apr;
-                    stakeEnds[token!.name] = token!.stakeEnd;
-                    stakedOns[token!.name] = token!.stakedAt;
+                    stakedAmounts[token.name] = token.stakedAmount;
+                    stakeRewards[token.name] = token.rewards;
+                    earnedRewardsMap[token.name] = token.earnedRewards;
+                    aprValues[token.name] = token.apr;
+                    stakeEnds[token.name] = token.stakeEnd;
+                    stakedOns[token.name] = token.stakedAt;
                 });
     
                 // Update React states
                 setStakedAmount(stakedAmounts);
                 setStakeRewards(stakeRewards);
                 setEarnedRewards(earnedRewardsMap);
+                setAPRValues(aprValues);
                 setStakeEnd(stakeEnds);
                 setStakedOn(stakedOns);
     
-                console.log("Successfully fetched staking information");
+                console.log("Successfully fetched and updated staking information:", {
+                    stakedAmounts,
+                    stakeRewards,
+                    earnedRewardsMap,
+                    aprValues,
+                    stakeEnds,
+                    stakedOns,
+                });
             } catch (error) {
                 console.error("Error fetching staking information:", error);
                 Swal.fire({
@@ -475,6 +477,7 @@ function Staking() {
             console.warn("Missing web3, contract, or address");
         }
     };
+    
     
     
 
