@@ -1473,7 +1473,7 @@ function Staking() {
                             <div className="flex justify-between items-center">
                                 <p><FontAwesomeIcon icon={faAward} className="mr-2" />{t('earnsofar')}</p>
                                 <div className="flex flex-col text-[25px] md:text-[30px] loader">
-                                    {earnedRewards.USDT !== null ? (
+                                    {earnedRewards.USDT !== null && stakedAmount.USDT !== null ? (
                                         <>
                                             <p>{`${formatBigInt(earnedRewards.USDT)} USDT`}</p>
                                             <p className="text-sm text-right text-green-500">
@@ -1485,7 +1485,6 @@ function Staking() {
                                     )}
                                 </div>
                             </div>
-
                             <div className="flex justify-between items-center">
                                 <p><FontAwesomeIcon icon={faCoins} className="mr-2" />{t('totalreward')}</p>
                                 <div className="flex flex-col text-[25px] md:text-[30px] loader text-green-500">
