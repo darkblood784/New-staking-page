@@ -119,22 +119,19 @@ function Staking() {
     });
 
     // Function to calculate APR based on duration
-    const calculateAPR = (stakedOn: number | null, unlockIn: number | null) => {
-        if (stakedOn && unlockIn) {
-            const durationDays = Math.ceil((unlockIn - stakedOn) / (1000 * 60 * 60 * 24));
-
-            if (durationDays <= 30) {
-                return 15; // 15%
-            } else if (durationDays <= 180) {
-                return 24; // 24%
-            } else if (durationDays <= 365) {
-                return 36; // 36%
-            } else {
-                return 0; // Default case
-            }
+    const calculateAPR = (stakedOn: number, stakeEnd: number): number => {
+        const durationDays = Math.ceil((stakeEnd - stakedOn) / (60 * 60 * 24)); // Convert seconds to days
+        if (durationDays === 30) {
+            return 15; // 1 month duration
+        } else if (durationDays === 180) {
+            return 24; // 6 months duration
+        } else if (durationDays === 365) {
+            return 36; // 1 year duration
+        } else {
+            return 0; // Default case for invalid durations
         }
-        return 0; // Loading or not available case
     };
+    
 
 
     // Updated apr calculation
@@ -398,7 +395,7 @@ function Staking() {
                         const rewards = Number(rewardsBigInt.toString());
 
                         const currentTimestamp = Math.floor(Date.now() / 1000);
-                        const daysElapsed = stakedInfo.stakedAt ? (currentTimestamp - Number(stakedInfo.stakedAt)) / (60 * 60 * 24) : 0;
+                        const daysElapsed = Math.floor((currentTimestamp - stakedInfo.stakedAt) / (60 * 60 * 24));
                         const apr = token.name === "USDT" ? 15 : token.name === "BTC" ? 24 : 36;
                         const earnedRewards = (stakedAmount * apr / 100) * (daysElapsed / 365);
 
@@ -1451,8 +1448,13 @@ function Staking() {
                                             <p>{new Date(stakeEnd.USDT * 1000).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
                                             <p className="text-sm text-right">{Math.ceil((stakeEnd.USDT * 1000 - Date.now()) / (1000 * 60 * 60 * 24))} days to go</p>
                                             <div className="w-full h-4 bg-gray-300 rounded-full overflow-hidden mt-2">
-                                                <div className="h-full bg-green-500 transition-all duration-500 ease-in-out"
-                                                    style={{ width: `${((Date.now() / 1000 - stakedOn.USDT) / (stakeEnd.USDT - stakedOn.USDT)) * 100}%` }}
+                                                <div
+                                                    className="h-full bg-green-500 transition-all duration-500 ease-in-out"
+                                                    style={{
+                                                        width: `${
+                                                            ((Date.now() / 1000 - stakedOn.USDT) / (stakeEnd.USDT - stakedOn.USDT)) * 100
+                                                        }%`,
+                                                    }}
                                                 ></div>
                                             </div>
                                         </>
@@ -1471,7 +1473,7 @@ function Staking() {
                             <div className="flex justify-between items-center">
                                 <p><FontAwesomeIcon icon={faAward} className="mr-2" />{t('earnsofar')}</p>
                                 <div className="flex flex-col text-[25px] md:text-[30px] loader">
-                                    {earnedRewards.USDT !== null && !isNaN(earnedRewards.USDT) && stakedAmount.USDT !== null ? (
+                                    {earnedRewards.USDT !== null ? (
                                         <>
                                             <p>{`${formatBigInt(earnedRewards.USDT)} USDT`}</p>
                                             <p className="text-sm text-right text-green-500">
@@ -1483,6 +1485,7 @@ function Staking() {
                                     )}
                                 </div>
                             </div>
+
                             <div className="flex justify-between items-center">
                                 <p><FontAwesomeIcon icon={faCoins} className="mr-2" />{t('totalreward')}</p>
                                 <div className="flex flex-col text-[25px] md:text-[30px] loader text-green-500">
