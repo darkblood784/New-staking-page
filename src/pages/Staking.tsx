@@ -385,19 +385,22 @@ function Staking() {
                         const stakedInfo = await contract.methods.userStakeInfos(address, token.address).call();
                         console.log(`Staked info for ${token.name}:`, stakedInfo);
     
-                        const stakedAmount = Number(stakedInfo.stakedAmount.toString());
-                        const rewards = Number(stakedInfo.rewards.toString());
+                        // Explicitly convert BigInt values to Number for calculations
+                        const stakedAmount = Number(stakedInfo.stakedAmount);
+                        const rewards = Number(stakedInfo.rewards);
+                        const stakedAt = Number(stakedInfo.stakedAt);
+                        const stakeEnd = Number(stakedInfo.stakeEnd);
     
                         const currentTimestamp = Math.floor(Date.now() / 1000);
-                        const daysElapsed = stakedInfo.stakedAt
-                            ? (currentTimestamp - Number(stakedInfo.stakedAt)) / (60 * 60 * 24)
+                        const daysElapsed = stakedAt
+                            ? (currentTimestamp - stakedAt) / (60 * 60 * 24)
                             : 0;
     
-                        // Calculate duration in months from stakedAt and stakeEnd
-                        const durationInSeconds = stakedInfo.stakeEnd - stakedInfo.stakedAt;
+                        // Calculate duration in months
+                        const durationInSeconds = stakeEnd - stakedAt;
                         const durationInMonths = Math.round(durationInSeconds / (30 * 24 * 60 * 60)); // Convert seconds to months
     
-                        // Calculate APR using duration
+                        // Calculate APR
                         const apr = calculateAPR(durationInMonths);
     
                         // Calculate earned rewards
@@ -409,8 +412,8 @@ function Staking() {
                             amount: stakedAmount,
                             rewards,
                             earnedRewards,
-                            stakeEnd: Number(stakedInfo.stakeEnd),
-                            stakedAt: Number(stakedInfo.stakedAt)
+                            stakeEnd,
+                            stakedAt
                         };
                     } catch (innerError) {
                         console.error(`Error fetching staking information for ${token.name}:`, innerError);
